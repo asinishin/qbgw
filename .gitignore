@@ -13,3 +13,29 @@
 # Ignore all logfiles and tempfiles.
 /log/*.log
 /tmp
+
+# RVM
+.rvmrc
+.rvmrc.*
+.ruby-gemset
+.ruby-version
+config/setup_load_paths.rb
+
+# Mac files
+.DS_Store
+
+# Vim temp files
+*.swp
+*.swo
+
+#database
+config/database.yml
+db/schema.rb
+
+#public folder
+!/public/404.html
+!/public/422.html
+!/public/500.html
+/public/google*.html
+/public/*.html
+/public/assets
