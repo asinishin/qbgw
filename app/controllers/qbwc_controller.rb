@@ -1,5 +1,5 @@
 class QbwcController < ApplicationController
-  require "Quickbooks"
+  require "quickbooks"
   protect_from_forgery :except => :api 
   def qwc
     qwc = <<-QWC
