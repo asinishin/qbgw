@@ -1,8 +1,8 @@
 QBWC.configure do |c|
   
   #Currently Only supported for single logins. 
-  c.username = "foo"
-  c.password = "bar"
+  c.username = "bsprenger"
+  c.password = "t3l3w0rk"
   
   #Path to Company File (blank for open or named path or function etc..)
   c.company_file_path = ""
@@ -14,7 +14,7 @@ QBWC.configure do |c|
   c.api = :qb
   
   #Quickbooks Support URL provided in QWC File
-  c.support_site_url = "192.168.0.101:3000"
+  c.support_site_url = "https://qb.satellitedeskworks.com"
   
   #Quickbooks Owner ID provided in QWC File
   c.owner_id = '{57F3B9B1-86F1-4fcc-B1EE-566DE1813D20}'

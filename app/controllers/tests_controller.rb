@@ -16,7 +16,7 @@ class TestsController < ApplicationController
 	  [
 	    {
 	      :xml_attributes => {"requestID" => "1"},  ##Optional
-	      :customer_add   => { :name => "GermanGR" }
+	      :customer_add   => { :name => "John Jr Miller" }
 	    } 
 	  ] 
 	}
