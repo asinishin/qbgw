@@ -30,6 +30,30 @@ class QbwcController < ApplicationController
       return
     end
 
+    _, _, msg_content = $rabbitmq_queue.pop
+
+    if msg_content
+      QBWC.add_job(:import_customers) do
+	[
+	  {
+	    :xml_attributes =>  { "onError" => "stopOnError"}, 
+	    :customer_add_rq => 
+	    [
+	      {
+		:xml_attributes => {"requestID" => "1"},  ##Optional
+		:customer_add   => { :name => msg_content.inspect }
+	      } 
+	    ] 
+	  }
+	]
+      end
+      QBWC.jobs[:import_customers].set_response_proc do |r|
+	puts "Here we are ===>"
+	p r
+	QBWC.jobs.delete(:import_customers)
+      end
+    end
+
     req = request
     puts "========== #{ params["Envelope"]["Body"].keys.first}  =========="
     res = QBWC::SoapWrapper.route_request(req)

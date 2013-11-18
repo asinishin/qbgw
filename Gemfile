@@ -4,7 +4,15 @@ gem 'rails', '3.2.15'
 gem 'mysql2'
 
 gem 'qbwc'
+gem "bunny"
 
+group :test, :development do
+  gem "rspec-rails", "~> 2.4"
+end
+
+group :test do
+  gem "cucumber-rails", "~> 1.4.0"
+end
 
 # Gems used only for assets and not required
 # in production environments by default.
