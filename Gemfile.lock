@@ -28,12 +28,15 @@ GEM
     activesupport (3.2.15)
       i18n (~> 0.6, >= 0.6.4)
       multi_json (~> 1.0)
+    amq-protocol (1.8.0)
     arel (3.0.2)
     buffered_logger (0.1.3)
       activesupport
       i18n
       term-ansicolor
     builder (3.0.4)
+    bunny (1.0.4)
+      amq-protocol (>= 1.8.0)
     capybara (2.1.0)
       mime-types (>= 1.16)
       nokogiri (>= 1.3.3)
@@ -149,6 +152,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  bunny
   cucumber-rails (~> 1.4.0)
   jquery-rails
   mysql2
