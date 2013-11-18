@@ -30,7 +30,7 @@ class QbwcController < ApplicationController
       return
     end
 
-    _, _, msg_content = $rabbitmq_queue.pop
+    _, _, msg_content = $customers_queue.pop
 
     if msg_content
       QBWC.add_job(:import_customers) do
