@@ -35,7 +35,7 @@ class QbwcController < ApplicationController
     _, _, msg_content = $customers_queue.pop
     
     if msg_content
-      customer = CustomerBeef.decode(msg_content.inspect)
+      customer = CustomerBeef.decode(msg_content)
       QBWC.add_job(:import_customers) do
 	[
 	  {
