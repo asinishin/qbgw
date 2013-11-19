@@ -1,4 +1,4 @@
-require 'consumer_beef'
+require 'customer_beef'
 
 class QbwcController < ApplicationController
   require "quickbooks"
@@ -35,7 +35,7 @@ class QbwcController < ApplicationController
     _, _, msg_content = $customers_queue.pop
     
     if msg_content
-      consumer = ConsumerBeef.decode(msg_content.inspect)
+      customer = CustomerBeef.decode(msg_content.inspect)
       QBWC.add_job(:import_customers) do
 	[
 	  {
@@ -44,7 +44,7 @@ class QbwcController < ApplicationController
 	    [
 	      {
 		:xml_attributes => {"requestID" => "1"},  ##Optional
-		:customer_add   => { :name => consumer.first_name + ' ' + consumer.last_name }
+		:customer_add   => { :name => customer.first_name + ' ' + customer.last_name }
 	      } 
 	    ] 
 	  }

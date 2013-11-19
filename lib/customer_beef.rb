@@ -1,4 +1,4 @@
-class ConsumerBeef
+class CustomerBeef
   include Beefcake::Message
 
   # Required
