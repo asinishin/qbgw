@@ -1,3 +1,5 @@
+require 'consumer_beef'
+
 class QbwcController < ApplicationController
   require "quickbooks"
   protect_from_forgery :except => :api 
@@ -31,8 +33,9 @@ class QbwcController < ApplicationController
     end
 
     _, _, msg_content = $customers_queue.pop
-
+    
     if msg_content
+      consumer = ConsumerBeef.decode(msg_content.inspect)
       QBWC.add_job(:import_customers) do
 	[
 	  {
@@ -41,7 +44,7 @@ class QbwcController < ApplicationController
 	    [
 	      {
 		:xml_attributes => {"requestID" => "1"},  ##Optional
-		:customer_add   => { :name => msg_content.inspect }
+		:customer_add   => { :name => consumer.first_name + ' ' + consumer.last_name }
 	      } 
 	    ] 
 	  }

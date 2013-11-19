@@ -5,6 +5,7 @@ gem 'mysql2'
 
 gem 'qbwc'
 gem "bunny"
+gem "beefcake"
 
 group :test, :development do
   gem "rspec-rails", "~> 2.4"
