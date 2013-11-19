@@ -51,8 +51,8 @@ class QbwcController < ApplicationController
 	]
       end
       QBWC.jobs[:import_customers].set_response_proc do |r|
-	puts "Here we are ===>"
-	p r
+	Rails.logger.info "Here we are ===>"
+	Rails.logger.info(QBWC.parser.qbxml_to_hash(r))
 	QBWC.jobs.delete(:import_customers)
       end
     end
