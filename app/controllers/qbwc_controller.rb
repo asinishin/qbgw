@@ -59,13 +59,18 @@ class QbwcController < ApplicationController
   end
 
   def handle_response(customer_ref)
+    Rails.logger.info "Here I am ==> 1"
     QBWC.jobs[:import_customers].set_response_proc do |r|
+      Rails.logger.info "Her I am ==> 2"
       if r['xml_attributes'] && r['xml_attributes']['statusCode'] == '0' && r['xml_attributes']['requestID'] == customer.sat_id.to_s && r['customer_ret']
+	Rails.logger.info "Her I am ==> 3"
 	yield r['customer_ret']['list_id']
       else
+	Rails.logger.info "Her I am ==> 4"
 	Rails.logger.info "Error: Quickbooks returned an error in response ==>"
 	Rails.logger.info r.inspect
       end
+      Rails.logger.info "Her I am ==> 5"
       QBWC.jobs.delete(:import_customers)
     end
   end
