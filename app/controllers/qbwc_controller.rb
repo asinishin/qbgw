@@ -44,7 +44,11 @@ class QbwcController < ApplicationController
 	    [
 	      {
 		:xml_attributes => {"requestID" => "1"},  ##Optional
-		:customer_add   => { :name => customer.first_name + ' ' + customer.last_name }
+		:customer_add   => {
+		  :name       => customer.first_name + ' ' + customer.last_name,
+		  :first_name => customer.first_name,
+		  :last_name  => customer.last_name
+		}
 	      } 
 	    ] 
 	  }
