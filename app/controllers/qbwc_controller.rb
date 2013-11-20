@@ -26,7 +26,6 @@ class QbwcController < ApplicationController
 
   def api
     # respond successfully to a GET which some versions of the Web Connector send to verify the url
-
     if request.get?
       render :nothing => true
       return
@@ -46,14 +45,9 @@ class QbwcController < ApplicationController
       customer = CustomerBeef.decode(msg_content)
       #if customer.operation == 'add'
       if true
-        customer_ref = add_customer(customer)
-	handle_response(customer_ref) do |list_id|
-	  customer_ref.qb_id = list_id
-	  customer_ref.save!
-	end
+	add_customer(customer)
       else # update operation
-        customer_ref = modify_customer(customer)
-        handle_response(customer_ref)
+        modify_customer(customer)
       end
     end
 
@@ -62,38 +56,45 @@ class QbwcController < ApplicationController
     res = QBWC::SoapWrapper.route_request(req)
     render :xml => res, :content_type => 'text/xml'
   rescue Exception => e
-    Rails.logger.info "Here we are ==>"
+    Rails.logger.info "Error ==>"
     Rails.logger.info(e.class.name + ':' + e.to_s)
   end
 
-  def handle_response(customer_ref)
+  def handle_response(job_name)
     Rails.logger.info "Here I am ==> 1"
-    QBWC.jobs[:import_customers].set_response_proc do |r|
-      Rails.logger.info "Her I am ==> 2"
-      if r['xml_attributes'] && r['xml_attributes']['statusCode'] == '0' && r['xml_attributes']['requestID'] == customer.sat_id.to_s && r['customer_ret']
-	Rails.logger.info "Her I am ==> 3"
-	yield r['customer_ret']['list_id']
-      else
-	Rails.logger.info "Her I am ==> 4"
-	Rails.logger.info "Error: Quickbooks returned an error in response ==>"
-	Rails.logger.info r.inspect
+    QBWC.jobs[job_name].set_response_proc do |r|
+      if r['xml_attributes'] && r['xml_attributes']['requestID'] == job_name
+	Rails.logger.info "Her I am ==> 2 job: #{ job_name }"
+	if r['xml_attributes']['statusCode'] == '0' && r['customer_ret']
+	  Rails.logger.info "Her I am ==> 3"
+	  yield r['customer_ret']['list_id']
+	else
+	  Rails.logger.info "Her I am ==> 4"
+	  Rails.logger.info "Error: Quickbooks returned an error in response ==>"
+	  Rails.logger.info r.inspect
+	end
+	Rails.logger.info "Her I am ==> 5"
+	QBWC.jobs.delete(job_name)
       end
-      Rails.logger.info "Her I am ==> 5"
-      QBWC.jobs.delete(:import_customers)
     end
+  end
+
+  def gen_job_name
+    Time.now.seconds_since_midnight.to_s
   end
 
   def add_customer(customer)
     customer_ref = CustomerRef.new(sat_id: customer.sat_id)
     customer_ref.save!
-    QBWC.add_job(:import_customers) do
+    job_name = gen_job_name
+    QBWC.add_job(job_name) do
       [
 	{
 	  :xml_attributes =>  { "onError" => "stopOnError" }, 
 	  :customer_add_rq => 
 	  [
 	    {
-	      :xml_attributes => { "requestID" => customer.sat_id.to_s },  ##Optional
+	      :xml_attributes => { "requestID" => job_name },
 	      :customer_add   => {
 		:name       => customer.first_name + ' ' + customer.last_name,
 		:first_name => customer.first_name,
@@ -104,20 +105,24 @@ class QbwcController < ApplicationController
 	}
       ]
     end
-    customer_ref
+    handle_response(job_name) do |list_id|
+      customer_ref.qb_id = list_id
+      customer_ref.save!
+    end
   end
 
   def modify_customer(customer)
     customer_ref = CustomerRef.where('sat_id = ?', customer.sat_id).first
     if customer_ref
-      QBWC.add_job(:import_customers) do
+      job_name = gen_job_name
+      QBWC.add_job(job_name) do
 	[
 	  {
 	    :xml_attributes =>  { "onError" => "stopOnError" }, 
 	    :customer_mod_rq => 
 	    [
 	      {
-		:xml_attributes => { "requestID" => customer.sat_id.to_s },  ##Optional
+		:xml_attributes => { "requestID" => job_name },
 		:customer_mod   => {
 		  :list_id    => customer_ref.qb_id,
 		  :name       => customer.first_name + ' ' + customer.last_name,
@@ -129,7 +134,7 @@ class QbwcController < ApplicationController
 	  }
 	]
       end
+      handle_response(job_name)
     end
-    customer_ref
   end
 end
