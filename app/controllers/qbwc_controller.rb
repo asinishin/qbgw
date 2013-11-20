@@ -52,6 +52,9 @@ class QbwcController < ApplicationController
     puts "========== #{ params["Envelope"]["Body"].keys.first}  =========="
     res = QBWC::SoapWrapper.route_request(req)
     render :xml => res, :content_type => 'text/xml'
+  rescue Exception => e
+    Rails.logger.info "Here we are ==>"
+    Rails.logger.info(e.class.name + ':' + e.to_s)
   end
 
   def handle_response(customer_ref)
