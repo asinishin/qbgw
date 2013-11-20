@@ -31,8 +31,16 @@ class QbwcController < ApplicationController
       render :nothing => true
       return
     end
+    
 
-    _, _, msg_content = $customers_queue.pop
+    msg_content = nil
+    $customers_queue.subscribe do |delivery_info, metadata, payload|
+      msg_content = payload
+    end
+    
+    sleep(100)
+
+#    _, _, msg_content = $customers_queue.pop
     
     if msg_content
       customer = CustomerBeef.decode(msg_content)
