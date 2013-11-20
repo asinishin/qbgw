@@ -30,7 +30,6 @@ class QbwcController < ApplicationController
       render :nothing => true
       return
     end
-    
 
     msg_content = nil
     $customers_queue.subscribe do |delivery_info, metadata, payload|
@@ -44,8 +43,7 @@ class QbwcController < ApplicationController
     if msg_content
       customer = CustomerBeef.decode(msg_content)
       Rails.logger.info "Here operation ==> #{ customer.operation }"
-      #if customer.operation == 'add'
-      if true
+      if customer.operation == 'add'
 	add_customer(customer)
       else # update operation
         modify_customer(customer)
