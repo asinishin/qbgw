@@ -2,8 +2,10 @@ class CustomerBeef
   include Beefcake::Message
 
   # Required
-  required :first_name, :string, 1
-  required :last_name,  :string, 2
+  required :operation,  :string, 1    
+  required :sat_id,     :int32,  2    
+  required :first_name, :string, 3
+  required :last_name,  :string, 4
 
   # Optional
   # optional :tag, :string, 3

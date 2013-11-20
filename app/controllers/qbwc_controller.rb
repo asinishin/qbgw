@@ -36,29 +36,37 @@ class QbwcController < ApplicationController
     
     if msg_content
       customer = CustomerBeef.decode(msg_content)
-      QBWC.add_job(:import_customers) do
-	[
-	  {
-	    :xml_attributes =>  { "onError" => "stopOnError"}, 
-	    :customer_add_rq => 
-	    [
-	      {
-		:xml_attributes => {"requestID" => "1"},  ##Optional
-		:customer_add   => {
-		  :name       => customer.first_name + ' ' + customer.last_name,
-		  :first_name => customer.first_name,
-		  :last_name  => customer.last_name
-		}
-	      } 
-	    ] 
-	  }
-	]
-      end
-      QBWC.jobs[:import_customers].set_response_proc do |r|
-	Rails.logger.info "Here we are ===>"
-	Rails.logger.info r.inspect
-	#Rails.logger.info(QBWC.parser.qbxml_to_hash(r.to_s).inspect)
-	QBWC.jobs.delete(:import_customers)
+      if customer.operation == 'add'
+	customer_ref = CustomerRef.new(sat_id: customer.sat_id)
+	customer_ref.save!
+	QBWC.add_job(:import_customers) do
+	  [
+	    {
+	      :xml_attributes =>  { "onError" => "stopOnError" }, 
+	      :customer_add_rq => 
+	      [
+		{
+		  :xml_attributes => { "requestID" => customer.sat_id.to_s },  ##Optional
+		  :customer_add   => {
+		    :name       => customer.first_name + ' ' + customer.last_name,
+		    :first_name => customer.first_name,
+		    :last_name  => customer.last_name
+		  }
+		} 
+	      ] 
+	    }
+	  ]
+	end
+	QBWC.jobs[:import_customers].set_response_proc do |r|
+	  if r['xml_attributes'] && r['xml_attributes']['statusCode'] == '0' && r['xml_attributes']['requestID'] == customer.sat_id.to_s && r['customer_ret']
+	    customer_ref.qb_id = r['customer_ret']['list_id']
+	    customer_ref.save!
+	  else
+	    Rails.logger.info "Error: Quickbooks returned an error in response ==>"
+	    Rails.logger.info r.inspect
+	  end
+	  QBWC.jobs.delete(:import_customers)
+	end
       end
     end
 
