@@ -113,6 +113,12 @@ class QbwcController < ApplicationController
   def modify_customer(customer)
     customer_ref = CustomerRef.where('sat_id = ?', customer.sat_id).first
     if customer_ref
+      5.times.each do 
+        if customer_ref.qb_id
+	  break
+	end
+        sleep 1 # wait for ID to be set
+      end
       job_name = gen_job_name
       QBWC.add_job(job_name) do
 	[
