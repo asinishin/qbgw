@@ -43,6 +43,7 @@ class QbwcController < ApplicationController
     
     if msg_content
       customer = CustomerBeef.decode(msg_content)
+      Rails.logger.info "Here operation ==> #{ customer.operation }"
       #if customer.operation == 'add'
       if true
 	add_customer(customer)
@@ -63,6 +64,7 @@ class QbwcController < ApplicationController
   def handle_response(job_name)
     Rails.logger.info "Here I am ==> 1"
     QBWC.jobs[job_name].set_response_proc do |r|
+      QBWC.jobs.delete(job_name)
       if r['xml_attributes'] && r['xml_attributes']['requestID'] == job_name
 	Rails.logger.info "Her I am ==> 2 job: #{ job_name }"
 	if r['xml_attributes']['statusCode'] == '0' && r['customer_ret']
@@ -74,7 +76,6 @@ class QbwcController < ApplicationController
 	  Rails.logger.info r.inspect
 	end
 	Rails.logger.info "Her I am ==> 5"
-	QBWC.jobs.delete(job_name)
       end
     end
   end
