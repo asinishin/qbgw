@@ -37,36 +37,14 @@ class QbwcController < ApplicationController
     if msg_content
       customer = CustomerBeef.decode(msg_content)
       if customer.operation == 'add'
-	customer_ref = CustomerRef.new(sat_id: customer.sat_id)
-	customer_ref.save!
-	QBWC.add_job(:import_customers) do
-	  [
-	    {
-	      :xml_attributes =>  { "onError" => "stopOnError" }, 
-	      :customer_add_rq => 
-	      [
-		{
-		  :xml_attributes => { "requestID" => customer.sat_id.to_s },  ##Optional
-		  :customer_add   => {
-		    :name       => customer.first_name + ' ' + customer.last_name,
-		    :first_name => customer.first_name,
-		    :last_name  => customer.last_name
-		  }
-		} 
-	      ] 
-	    }
-	  ]
+        customer_ref = add_customer(customer)
+	handle_response(customer_ref) do |list_id|
+	  customer_ref.qb_id = list_id
+	  customer_ref.save!
 	end
-	QBWC.jobs[:import_customers].set_response_proc do |r|
-	  if r['xml_attributes'] && r['xml_attributes']['statusCode'] == '0' && r['xml_attributes']['requestID'] == customer.sat_id.to_s && r['customer_ret']
-	    customer_ref.qb_id = r['customer_ret']['list_id']
-	    customer_ref.save!
-	  else
-	    Rails.logger.info "Error: Quickbooks returned an error in response ==>"
-	    Rails.logger.info r.inspect
-	  end
-	  QBWC.jobs.delete(:import_customers)
-	end
+      else # update operation
+        customer_ref = modify_customer(customer)
+        handle_response(customer_ref)
       end
     end
 
@@ -76,4 +54,65 @@ class QbwcController < ApplicationController
     render :xml => res, :content_type => 'text/xml'
   end
 
+  def handle_response(customer_ref)
+    QBWC.jobs[:import_customers].set_response_proc do |r|
+      if r['xml_attributes'] && r['xml_attributes']['statusCode'] == '0' && r['xml_attributes']['requestID'] == customer.sat_id.to_s && r['customer_ret']
+	yield r['customer_ret']['list_id']
+      else
+	Rails.logger.info "Error: Quickbooks returned an error in response ==>"
+	Rails.logger.info r.inspect
+      end
+      QBWC.jobs.delete(:import_customers)
+    end
+  end
+
+  def add_customer(customer)
+    customer_ref = CustomerRef.new(sat_id: customer.sat_id)
+    customer_ref.save!
+    QBWC.add_job(:import_customers) do
+      [
+	{
+	  :xml_attributes =>  { "onError" => "stopOnError" }, 
+	  :customer_add_rq => 
+	  [
+	    {
+	      :xml_attributes => { "requestID" => customer.sat_id.to_s },  ##Optional
+	      :customer_add   => {
+		:name       => customer.first_name + ' ' + customer.last_name,
+		:first_name => customer.first_name,
+		:last_name  => customer.last_name
+	      }
+	    } 
+	  ] 
+	}
+      ]
+    end
+    customer_ref
+  end
+
+  def modify_customer(customer)
+    customer_ref = CustomerRef.where('sat_id = ?', customer.sat_id).first
+    if customer_ref
+      QBWC.add_job(:import_customers) do
+	[
+	  {
+	    :xml_attributes =>  { "onError" => "stopOnError" }, 
+	    :customer_mod_rq => 
+	    [
+	      {
+		:xml_attributes => { "requestID" => customer.sat_id.to_s },  ##Optional
+		:customer_mod   => {
+		  :list_id    => customer_ref.qb_id,
+		  :name       => customer.first_name + ' ' + customer.last_name,
+		  :first_name => customer.first_name,
+		  :last_name  => customer.last_name
+		}
+	      } 
+	    ] 
+	  }
+	]
+      end
+    end
+    customer_ref
+  end
 end
