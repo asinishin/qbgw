@@ -31,14 +31,14 @@ class QbwcController < ApplicationController
       return
     end
 
-    msg_content = nil
-    $customers_queue.subscribe do |delivery_info, metadata, payload|
-      msg_content = payload
-    end
+#    msg_content = nil
+#    $customers_queue.subscribe do |delivery_info, metadata, payload|
+#      msg_content = payload
+#    end
     
-    sleep(0.1)
+#    sleep(0.1)
 
-#    _, _, msg_content = $customers_queue.pop
+    _, _, msg_content = $customers_queue.pop
     
     if msg_content
       customer = CustomerBeef.decode(msg_content)
