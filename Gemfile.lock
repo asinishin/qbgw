@@ -30,6 +30,7 @@ GEM
       multi_json (~> 1.0)
     amq-protocol (1.8.0)
     arel (3.0.2)
+    beefcake (0.4.0)
     buffered_logger (0.1.3)
       activesupport
       i18n
@@ -152,6 +153,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  beefcake
   bunny
   cucumber-rails (~> 1.4.0)
   jquery-rails
