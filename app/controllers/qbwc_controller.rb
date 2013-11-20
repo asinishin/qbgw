@@ -38,7 +38,7 @@ class QbwcController < ApplicationController
       msg_content = payload
     end
     
-    sleep(100)
+    sleep(0.1)
 
 #    _, _, msg_content = $customers_queue.pop
     
