@@ -36,7 +36,8 @@ class QbwcController < ApplicationController
     
     if msg_content
       customer = CustomerBeef.decode(msg_content)
-      if customer.operation == 'add'
+      #if customer.operation == 'add'
+      if true
         customer_ref = add_customer(customer)
 	handle_response(customer_ref) do |list_id|
 	  customer_ref.qb_id = list_id
