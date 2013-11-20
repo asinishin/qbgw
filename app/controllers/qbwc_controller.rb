@@ -118,6 +118,7 @@ class QbwcController < ApplicationController
 	  break
 	end
         sleep 1 # wait for ID to be set
+	customer_ref = CustomerRef.where('sat_id = ?', customer.sat_id).first
       end
       job_name = gen_job_name
       QBWC.add_job(job_name) do
