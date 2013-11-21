@@ -65,6 +65,10 @@ class QbwcController < ApplicationController
       QBWC.jobs.delete(job_name)
       if r['xml_attributes'] && r['xml_attributes']['requestID'] == job_name && r['customer_ret']
 	Rails.logger.info "Her I am ==> 2 job: #{ job_name }"
+	if r['xml_attributes']['statusCode'] != '0'
+	  Rails.logger.info "Error: Quickbooks returned an error ==>"
+	  Rails.logger.info r.inspect
+	end
 	yield( 
 	  r['xml_attributes']['statusCode'],
 	  r['customer_ret']['list_id'],
@@ -105,10 +109,6 @@ class QbwcController < ApplicationController
 	customer_ref.qb_id         = list_id
 	customer_ref.edit_sequence = edit_sequence
 	customer_ref.save!
-      else
-	$customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
-	Rails.logger.info "Error: Quickbooks returned an error on insert ==>"
-	Rails.logger.info r.inspect
       end
     end
   end
@@ -141,8 +141,6 @@ class QbwcController < ApplicationController
 	customer_ref.update_attributes(edit_sequence: edit_sequence)
 	if status != '0'
 	  $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
-	  Rails.logger.info "Error: Quickbooks returned an error on update ==>"
-	  Rails.logger.info r.inspect
 	end
       end
     else
