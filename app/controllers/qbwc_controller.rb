@@ -67,7 +67,7 @@ class QbwcController < ApplicationController
 	Rails.logger.info "Her I am ==> 2 job: #{ job_name }"
 	if r['xml_attributes']['statusCode'] == '0' && r['customer_ret']
 	  Rails.logger.info "Her I am ==> 3"
-	  yield r['customer_ret']['list_id']
+	  yield r['customer_ret']['list_id'], r['customer_ret']['edit_sequence']
 	else
 	  Rails.logger.info "Her I am ==> 4"
 	  Rails.logger.info "Error: Quickbooks returned an error in response ==>"
@@ -104,8 +104,9 @@ class QbwcController < ApplicationController
 	}
       ]
     end
-    handle_response(job_name) do |list_id|
-      customer_ref.qb_id = list_id
+    handle_response(job_name) do |list_id, edit_sequence|
+      customer_ref.qb_id         = list_id
+      customer_ref.edit_sequence = edit_sequence
       customer_ref.save!
     end
   end
@@ -134,7 +135,10 @@ class QbwcController < ApplicationController
 	  }
 	]
       end
-      handle_response(job_name)
+      handle_response(job_name) do |list_id, edit_sequence|
+	customer_ref.edit_sequence = edit_sequence
+	customer_ref.save!
+      end
     else
       $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
     end
