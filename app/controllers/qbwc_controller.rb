@@ -140,6 +140,10 @@ class QbwcController < ApplicationController
       end
       handle_response(job_name) do |status, list_id, edit_sequence|
 	customer_ref.update_attributes(edit_sequence: edit_sequence)
+	CustomerRef.update_all(
+	  "edit_sequence = #{ edit_sequence }",
+	  "id = #{ customer_ref.id } AND edit_sequence < #{ edit_sequence }"
+	)
 	if status != '0'
 	  $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
 	end
