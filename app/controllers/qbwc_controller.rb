@@ -65,16 +65,11 @@ class QbwcController < ApplicationController
       QBWC.jobs.delete(job_name)
       if r['xml_attributes'] && r['xml_attributes']['requestID'] == job_name && r['customer_ret']
 	Rails.logger.info "Her I am ==> 2 job: #{ job_name }"
-	if r['xml_attributes']['statusCode'] == '0'
-	  Rails.logger.info "Her I am ==> 3"
-	  yield r['customer_ret']['list_id'], r['customer_ret']['edit_sequence']
-	else
-	  Rails.logger.info "Her I am ==> 4"
-	  Rails.logger.info "Error: Quickbooks returned an error in response ==>"
-	  Rails.logger.info r.inspect
-	  yield r['customer_ret']['list_id'], r['customer_ret']['edit_sequence'] # To fix sequence
-	end
-	Rails.logger.info "Her I am ==> 5"
+	yield( 
+	  r['xml_attributes']['statusCode'],
+	  r['customer_ret']['list_id'],
+	  r['customer_ret']['edit_sequence']
+	)
       end
     end
   end
@@ -105,10 +100,16 @@ class QbwcController < ApplicationController
 	}
       ]
     end
-    handle_response(job_name) do |list_id, edit_sequence|
-      customer_ref.qb_id         = list_id
-      customer_ref.edit_sequence = edit_sequence
-      customer_ref.save!
+    handle_response(job_name) do |status, list_id, edit_sequence|
+      if status == '0'
+	customer_ref.qb_id         = list_id
+	customer_ref.edit_sequence = edit_sequence
+	customer_ref.save!
+      else
+	$customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
+	Rails.logger.info "Error: Quickbooks returned an error on insert ==>"
+	Rails.logger.info r.inspect
+      end
     end
   end
 
@@ -136,8 +137,13 @@ class QbwcController < ApplicationController
 	  }
 	]
       end
-      handle_response(job_name) do |list_id, edit_sequence|
+      handle_response(job_name) do |status, list_id, edit_sequence|
 	customer_ref.update_attributes(edit_sequence: edit_sequence)
+	if status != '0'
+	  $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
+	  Rails.logger.info "Error: Quickbooks returned an error on update ==>"
+	  Rails.logger.info r.inspect
+	end
       end
     else
       $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
