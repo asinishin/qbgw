@@ -112,15 +112,7 @@ class QbwcController < ApplicationController
 
   def modify_customer(customer)
     customer_ref = CustomerRef.where('sat_id = ?', customer.sat_id).first
-    if customer_ref
-      5.times.each do 
-        if customer_ref.qb_id
-	  break
-	end
-        sleep 1 # wait for ID to be set
-	customer_ref.reload
-	Rails.logger.info "Here customer ==> #{ customer.inspect }"
-      end
+    if customer_ref && customer_ref.qb_id
       job_name = gen_job_name
       QBWC.add_job(job_name) do
 	[
@@ -142,6 +134,8 @@ class QbwcController < ApplicationController
 	]
       end
       handle_response(job_name)
+    else
+      $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
     end
   end
 end
