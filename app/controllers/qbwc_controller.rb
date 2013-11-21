@@ -63,9 +63,9 @@ class QbwcController < ApplicationController
     Rails.logger.info "Here I am ==> 1"
     QBWC.jobs[job_name].set_response_proc do |r|
       QBWC.jobs.delete(job_name)
-      if r['xml_attributes'] && r['xml_attributes']['requestID'] == job_name
+      if r['xml_attributes'] && r['xml_attributes']['requestID'] == job_name && r['customer_ret']
 	Rails.logger.info "Her I am ==> 2 job: #{ job_name }"
-	if r['xml_attributes']['statusCode'] == '0' && r['customer_ret']
+	if r['xml_attributes']['statusCode'] == '0'
 	  Rails.logger.info "Her I am ==> 3"
 	  yield r['customer_ret']['list_id'], r['customer_ret']['edit_sequence']
 	else
@@ -137,8 +137,7 @@ class QbwcController < ApplicationController
 	]
       end
       handle_response(job_name) do |list_id, edit_sequence|
-	customer_ref.edit_sequence = edit_sequence
-	customer_ref.save!
+	customer_ref.update_attributes(edit_sequence: edit_sequence)
       end
     else
       $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
