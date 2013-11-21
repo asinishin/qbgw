@@ -72,6 +72,7 @@ class QbwcController < ApplicationController
 	  Rails.logger.info "Her I am ==> 4"
 	  Rails.logger.info "Error: Quickbooks returned an error in response ==>"
 	  Rails.logger.info r.inspect
+	  yield r['customer_ret']['list_id'], r['customer_ret']['edit_sequence'] # To fix sequence
 	end
 	Rails.logger.info "Her I am ==> 5"
       end
