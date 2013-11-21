@@ -79,7 +79,8 @@ class QbwcController < ApplicationController
   end
 
   def gen_job_name
-    Time.now.seconds_since_midnight.to_s
+    $q_tick += 1
+    Time.now.seconds_since_midnight.to_s + '.' + $q_tick.to_s
   end
 
   def add_customer(customer)

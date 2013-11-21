@@ -8,6 +8,7 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
        $customers_queue = $q_channel.queue("customers", :durable => true, :auto_delete => false)
 
        $customers_exchange = $q_channel.default_exchange
+       $q_tick = 0
     end
   end
 end
