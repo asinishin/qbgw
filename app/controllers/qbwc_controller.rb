@@ -125,7 +125,7 @@ class QbwcController < ApplicationController
 		:xml_attributes => { "requestID" => job_name },
 		:customer_mod   => {
 		  :list_id    => customer_ref.qb_id,
-		  :edit_sequence => '1354271644',
+		  :edit_sequence => customer_ref.edit_sequence,
 		  :name       => customer.first_name + ' ' + customer.last_name,
 		  :first_name => customer.first_name,
 		  :last_name  => customer.last_name
