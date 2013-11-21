@@ -87,24 +87,22 @@ class QbwcController < ApplicationController
     customer_ref.save!
     job_name = gen_job_name
     QBWC.add_job(job_name) do
-      {  :qbxml_msgs_rq => 
-	[
-	  {
-	    :xml_attributes =>  { "onError" => "stopOnError" }, 
-	    :customer_add_rq => 
-	    [
-	      {
-		:xml_attributes => { "requestID" => job_name },
-		:customer_add   => {
-		  :name       => customer.first_name + ' ' + customer.last_name,
-		  :first_name => customer.first_name,
-		  :last_name  => customer.last_name
-		}
-	      } 
-	    ] 
-	  }
-	]
-      }
+      [
+	{
+	  :xml_attributes =>  { "onError" => "stopOnError" }, 
+	  :customer_add_rq => 
+	  [
+	    {
+	      :xml_attributes => { "requestID" => job_name },
+	      :customer_add   => {
+		:name       => customer.first_name + ' ' + customer.last_name,
+		:first_name => customer.first_name,
+		:last_name  => customer.last_name
+	      }
+	    } 
+	  ] 
+	}
+      ]
     end
     handle_response(job_name) do |list_id|
       customer_ref.qb_id = list_id
@@ -117,26 +115,24 @@ class QbwcController < ApplicationController
     if customer_ref && customer_ref.qb_id
       job_name = gen_job_name
       QBWC.add_job(job_name) do
-	{  :qbxml_msgs_rq => 
-	  [
-	    {
-	      :xml_attributes =>  { "onError" => "stopOnError" }, 
-	      :customer_mod_rq => 
-	      [
-		{
-		  :xml_attributes => { "requestID" => job_name },
-		  :customer_mod   => {
-		    :list_id    => customer_ref.qb_id,
-		    :edit_sequence => '1354271644',
-		    :name       => customer.first_name + ' ' + customer.last_name,
-		    :first_name => customer.first_name,
-		    :last_name  => customer.last_name
-		  }
-		} 
-	      ] 
-	    }
-	  ]
-	}
+	[
+	  {
+	    :xml_attributes =>  { "onError" => "stopOnError" }, 
+	    :customer_mod_rq => 
+	    [
+	      {
+		:xml_attributes => { "requestID" => job_name },
+		:customer_mod   => {
+		  :list_id    => customer_ref.qb_id,
+		  :edit_sequence => '1354271644',
+		  :name       => customer.first_name + ' ' + customer.last_name,
+		  :first_name => customer.first_name,
+		  :last_name  => customer.last_name
+		}
+	      } 
+	    ] 
+	  }
+	]
       end
       handle_response(job_name)
     else
