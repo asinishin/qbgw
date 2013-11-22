@@ -75,7 +75,7 @@ class QbwcController < ApplicationController
       delta = CustomerBit.where(
 	"id = #{ r['xml_attributes']['requestID'] } AND status = 'work'"
       ).first
-      customer_ref = delta.customer_ref
+      customer_ref = delta.customer_ref if delta
     end
     if delta && r['customer_ret']['edit_sequence']
       edit_sequence = r['customer_ret']['edit_sequence']

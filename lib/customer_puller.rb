@@ -29,7 +29,7 @@ class CustomerPuller
 	  customer_bits.operation = ? AND
 	  customer_bits.status = ?
 	}.squish, 'add', 'wait'
-      ).order('customer_bits.id').readonly(false).first(1).map do |delta|
+      ).order('customer_bits.id').readonly(false).first(10).map do |delta|
         delta.update_attributes(status: 'work')
 	delta
       end
