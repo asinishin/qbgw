@@ -98,6 +98,7 @@ class QbwcController < ApplicationController
       Rails.logger.info "Error: Quickbooks request is not found ==>"
       Rails.logger.info r.inspect
     end
+    Rails.logger.info "Here I am ==> 5"
   end
 
   def build_qbxml_request
@@ -115,7 +116,7 @@ class QbwcController < ApplicationController
 	    :xml_attributes => { "requestID" => delta.id },
 	    :customer_mod   => {
 	      :list_id       => delta.customer_ref.qb_id,
-	      :edit_sequence => delta.customer_ref.edit_sequence + delta.input_order - 1,
+	      :edit_sequence => delta.customer_ref.edit_sequence,
 	      :name          => delta.first_name + ' ' + delta.last_name,
 	      :first_name    => delta.first_name,
 	      :last_name     => delta.last_name
