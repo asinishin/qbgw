@@ -78,7 +78,7 @@ class QbwcController < ApplicationController
       customer_ref = delta.customer_ref
     end
     if delta && r['customer_ret']['edit_sequence']
-      edit_sequence = r['customer_ret']['edit_sequence'])
+      edit_sequence = r['customer_ret']['edit_sequence']
       CustomerRef.update_all(
 	"edit_sequence = #{ edit_sequence }",
 	"id = #{ customer_ref.id } AND edit_sequence < #{ edit_sequence }"
@@ -98,7 +98,6 @@ class QbwcController < ApplicationController
       Rails.logger.info "Error: Quickbooks request is not found ==>"
       Rails.logger.info r.inspect
     end
-    Rails.logger.info "Here I am ==> 5"
   end
 
   def build_qbxml_request
