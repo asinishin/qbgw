@@ -47,7 +47,7 @@ class QbwcController < ApplicationController
   def set_response_handler(job)
     Rails.logger.info "Here I am ==> 1"
     job.set_response_proc do |r|
-      delta = CustomerDelta.where(
+      delta = CustomerBit.where(
 	"id = #{ r['xml_attributes']['requestID'] } AND status = 'work'"
       ).first
       if r['xml_attributes']['statusCode'] != '0'
