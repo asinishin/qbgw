@@ -49,6 +49,7 @@ class QbwcController < ApplicationController
     QBWC.jobs[job_name].set_response_proc do |r|
       #QBWC.jobs.delete(job_name)
       Rails.logger.info "Here I am ==> 2 #{job_name}"
+      Rails.logger.info r.inspect
 
       delta = CustomerBit.where(
 	"id = #{ r['xml_attributes']['requestID'] } AND status = 'work'"
