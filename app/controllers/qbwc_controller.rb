@@ -1,7 +1,7 @@
-require 'customer_beef'
+require 'customer_puller'
+require 'quickbooks'     # TODO check if anything broken
 
 class QbwcController < ApplicationController
-  require "quickbooks"
   protect_from_forgery :except => :api 
   def qwc
     qwc = <<-QWC
@@ -31,125 +31,85 @@ class QbwcController < ApplicationController
       return
     end
 
-#    msg_content = nil
-#    $customers_queue.subscribe do |delivery_info, metadata, payload|
-#      msg_content = payload
-#    end
-    
-#    sleep(0.1)
-
-    _, _, msg_content = $customers_queue.pop
-    
-    if msg_content
-      customer = CustomerBeef.decode(msg_content)
-      Rails.logger.info "Here operation ==> #{ customer.operation }"
-      if customer.operation == 'add'
-	add_customer(customer)
-      else # update operation
-        modify_customer(customer)
-      end
-    end
+    build_qbxml_request
 
     req = request
     puts "========== #{ params["Envelope"]["Body"].keys.first}  =========="
     res = QBWC::SoapWrapper.route_request(req)
     render :xml => res, :content_type => 'text/xml'
+
   rescue Exception => e
     Rails.logger.info "Error ==>"
     Rails.logger.info(e.class.name + ':' + e.to_s)
   end
 
-  def handle_response(job_name)
+  def set_response_handler(job)
     Rails.logger.info "Here I am ==> 1"
-    QBWC.jobs[job_name].set_response_proc do |r|
-      QBWC.jobs.delete(job_name)
-      if r['xml_attributes'] && r['xml_attributes']['requestID'] == job_name && r['customer_ret']
-	Rails.logger.info "Her I am ==> 2 job: #{ job_name }"
-	if r['xml_attributes']['statusCode'] != '0'
-	  Rails.logger.info "Error: Quickbooks returned an error ==>"
-	  Rails.logger.info r.inspect
+    job.set_response_proc do |r|
+      delta = CustomerDelta.where(
+	"id = #{ r['xml_attributes']['requestID'] } AND status = 'work'"
+      ).first
+      if r['xml_attributes']['statusCode'] != '0'
+	Rails.logger.info "Error: Quickbooks returned an error ==>"
+	Rails.logger.info r.inspect
+	CustomerPuller.reset(delta.id) if delta
+      elsif delta
+	if delta.operation == 'add'
+	  customer_ref = delta.customer_ref
+	  customer_ref.qb_id         = r['customer_ret']['list_id']
+	  customer_ref.edit_sequence = r['customer_ret']['edit_sequence']
+	  customer_ref.save!
 	end
-	yield( 
-	  r['xml_attributes']['statusCode'],
-	  r['customer_ret']['list_id'],
-	  r['customer_ret']['edit_sequence']
-	)
+	CustomerPuller.done(delta.id)
+      else
+	Rails.logger.info "Error: Quickbooks request is not found ==>"
+	Rails.logger.info r.inspect
       end
     end
   end
 
-  def gen_job_name
-    $q_tick += 1
-    Time.now.seconds_since_midnight.to_s + '.' + $q_tick.to_s
-  end
+  def build_qbxml_request
+    mods = CustomerPuller.modifications
+    news = CustomerPuller.news
 
-  def add_customer(customer)
-    customer_ref = CustomerRef.new(sat_id: customer.sat_id)
-    customer_ref.save!
-    job_name = gen_job_name
-    QBWC.add_job(job_name) do
-      [
-	{
-	  :xml_attributes =>  { "onError" => "stopOnError" }, 
-	  :customer_add_rq => 
-	  [
-	    {
-	      :xml_attributes => { "requestID" => job_name },
-	      :customer_add   => {
-		:name       => customer.first_name + ' ' + customer.last_name,
-		:first_name => customer.first_name,
-		:last_name  => customer.last_name
-	      }
-	    } 
-	  ] 
-	}
-      ]
-    end
-    handle_response(job_name) do |status, list_id, edit_sequence|
-      if status == '0'
-	customer_ref.qb_id         = list_id
-	customer_ref.edit_sequence = edit_sequence
-	customer_ref.save!
-      end
-    end
-  end
+    return if mods.size == 0 || news.size == 0
 
-  def modify_customer(customer)
-    customer_ref = CustomerRef.where('sat_id = ?', customer.sat_id).first
-    if customer_ref && customer_ref.qb_id
-      job_name = gen_job_name
-      QBWC.add_job(job_name) do
-	[
+    request_hash = { :xml_attributes =>  { "onError" => "stopOnError" } }
+
+    if mods.size > 0
+      request_hash.merge!(
+	:customer_mod_rq => mods.map do |delta|
 	  {
-	    :xml_attributes =>  { "onError" => "stopOnError" }, 
-	    :customer_mod_rq => 
-	    [
-	      {
-		:xml_attributes => { "requestID" => job_name },
-		:customer_mod   => {
-		  :list_id    => customer_ref.qb_id,
-		  :edit_sequence => customer_ref.edit_sequence,
-		  :name       => customer.first_name + ' ' + customer.last_name,
-		  :first_name => customer.first_name,
-		  :last_name  => customer.last_name
-		}
-	      } 
-	    ] 
+	    :xml_attributes => { "requestID" => delta.id },
+	    :customer_mod   => {
+	      :list_id       => delta.customer_ref.qb_id,
+	      :edit_sequence => delta.customer_ref.edit_sequence + delta.input_order,
+	      :name       => customer.first_name + ' ' + customer.last_name,
+	      :first_name => customer.first_name,
+	      :last_name  => customer.last_name
+	    }
 	  }
-	]
-      end
-      handle_response(job_name) do |status, list_id, edit_sequence|
-	customer_ref.update_attributes(edit_sequence: edit_sequence)
-	CustomerRef.update_all(
-	  "edit_sequence = #{ edit_sequence }",
-	  "id = #{ customer_ref.id } AND edit_sequence < #{ edit_sequence }"
-	)
-	if status != '0'
-	  $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
 	end
-      end
-    else
-      $customers_exchange.publish(customer.encode.to_s, :routing_key => $customers_queue.name)
+      )
     end
+
+    if news.size > 0
+      request_hash.merge!(
+	:customer_add_rq => news.map do |delta|
+	  {
+	    :xml_attributes => { "requestID" => delta.id },
+	    :customer_add   => {
+	      :name       => customer.first_name + ' ' + customer.last_name,
+	      :first_name => customer.first_name,
+	      :last_name  => customer.last_name
+	    }
+	  }
+	end
+      )
+    end
+
+    set_response_handler(QBWC.add_job(:import_customers) { [request_hash] })
+
   end
+
 end
