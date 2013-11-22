@@ -47,29 +47,47 @@ class QbwcController < ApplicationController
   def set_response_handler(job_name)
     Rails.logger.info "Here I am ==> 1 #{job_name}"
     QBWC.jobs[job_name].set_response_proc do |r|
-      #QBWC.jobs.delete(job_name)
       Rails.logger.info "Here I am ==> 2 #{job_name}"
       Rails.logger.info r.inspect
 
+      if r['customer_mod_rs'].respond_to?(:to_ary) # Array?
+        r['customer_mod_rs'].each{ |item| process_response_item item }
+      end
+
+      if r['customer_add_rs'].respond_to?(:to_ary) # Array?
+        r['customer_add_rs'].each{ |item| process_response_item item }
+      end
+
+      if r['xml_attributes']['requestID'] # Single request
+        process_response_item r
+      end
+
+      QBWC.jobs.delete(job_name)
+    end
+  end
+
+  def process_response_item(r)
+    delta = nil
+    if r['xml_attributes']['requestID']
       delta = CustomerBit.where(
 	"id = #{ r['xml_attributes']['requestID'] } AND status = 'work'"
       ).first
-      if r['xml_attributes']['statusCode'] != '0'
-	Rails.logger.info "Error: Quickbooks returned an error ==>"
-	Rails.logger.info r.inspect
-	CustomerPuller.reset(delta.id) if delta
-      elsif delta
-	if delta.operation == 'add'
-	  customer_ref = delta.customer_ref
-	  customer_ref.qb_id         = r['customer_ret']['list_id']
-	  customer_ref.edit_sequence = r['customer_ret']['edit_sequence']
-	  customer_ref.save!
-	end
-	CustomerPuller.done(delta.id)
-      else
-	Rails.logger.info "Error: Quickbooks request is not found ==>"
-	Rails.logger.info r.inspect
+    end
+    if r['xml_attributes']['statusCode'] != '0'
+      Rails.logger.info "Error: Quickbooks returned an error ==>"
+      Rails.logger.info r.inspect
+      CustomerPuller.reset(delta.id) if delta
+    elsif delta
+      if delta.operation == 'add'
+	customer_ref = delta.customer_ref
+	customer_ref.qb_id         = r['customer_ret']['list_id']
+	customer_ref.edit_sequence = r['customer_ret']['edit_sequence']
+	customer_ref.save!
       end
+      CustomerPuller.done(delta.id)
+    else
+      Rails.logger.info "Error: Quickbooks request is not found ==>"
+      Rails.logger.info r.inspect
     end
   end
 
