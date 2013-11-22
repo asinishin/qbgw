@@ -98,6 +98,10 @@ class QbwcController < ApplicationController
       Rails.logger.info "Error: Quickbooks request is not found ==>"
       Rails.logger.info r.inspect
     end
+  rescue Exception => e
+    Rails.logger.info "Error ==>"
+    Rails.logger.info(e.class.name + ':' + e.to_s)
+    Rails.logger.info e.backtrace.join("\n")
   end
 
   def build_qbxml_request
