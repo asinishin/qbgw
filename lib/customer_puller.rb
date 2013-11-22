@@ -8,13 +8,13 @@ class CustomerPuller
 
   def self.modifications
     lock.synchronize do
-      CustomerDelta.joins(:customer_ref).where(
+      CustomerBit.joins(:customer_ref).where(
 	%Q{
 	  customer_refs.edit_sequence IS NOT NULL AND
-	  customer_deltas.operation = ?
-	  customer_deltas.status = ?
+	  customer_bits.operation = ?
+	  customer_bits.status = ?
 	}.squish, 'upd', 'wait'
-      ).order('customer_deltas.input_order').first(10).map do |delta|
+      ).order('customer_bits.input_order').first(10).map do |delta|
         delta.update_attributes(status: 'work')
 	delta
       end
@@ -23,13 +23,13 @@ class CustomerPuller
 
   def self.news
     lock.synchronize do
-      CustomerDelta.joins(:customer_ref).where(
+      CustomerBit.joins(:customer_ref).where(
 	%Q{
 	  customer_refs.edit_sequence IS NULL AND
-	  customer_deltas.operation = ?
-	  customer_deltas.status = ?
+	  customer_bits.operation = ?
+	  customer_bits.status = ?
 	}.squish, 'add', 'wait'
-      ).order('customer_deltas.id').first(10).map do |delta|
+      ).order('customer_bits.id').first(10).map do |delta|
         delta.update_attributes(status: 'work')
 	delta
       end
@@ -38,7 +38,7 @@ class CustomerPuller
 
   def self.done(delta_id)
     lock.synchronize do
-      delta = CustomerDelta.where("id = #{ delta_id } AND status = 'work'").first
+      delta = CustomerBit.where("id = #{ delta_id } AND status = 'work'").first
       if delta
         delta.update_attributes(status: 'done')
       end
@@ -48,7 +48,7 @@ class CustomerPuller
 
   def self.reset(delta_id)
     lock.synchronize do
-      delta = CustomerDelta.where("id = #{ delta_id } AND status = 'work'").first
+      delta = CustomerBit.where("id = #{ delta_id } AND status = 'work'").first
       if delta
         delta.update_attributes(status: 'wait')
       end
