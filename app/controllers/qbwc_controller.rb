@@ -44,9 +44,12 @@ class QbwcController < ApplicationController
     Rails.logger.info e.backtrace.join("\n")
   end
 
-  def set_response_handler(job)
-    Rails.logger.info "Here I am ==> 1"
-    job.set_response_proc do |r|
+  def set_response_handler(job_name)
+    Rails.logger.info "Here I am ==> 1 #{job_name}"
+    QBWC.jobs[job_name].set_response_proc do |r|
+      QBWC.jobs.delete(job_name)
+      Rails.logger.info "Here I am ==> 2 #{job_name}"
+
       delta = CustomerBit.where(
 	"id = #{ r['xml_attributes']['requestID'] } AND status = 'work'"
       ).first
@@ -108,9 +111,16 @@ class QbwcController < ApplicationController
 	end
       )
     end
+    
+    job_name = gen_job_name
+    QBWC.add_job(job_name) { [request_hash] }
+    set_response_handler(job_name)
 
-    set_response_handler(QBWC.add_job(:import_customers) { [request_hash] })
+  end
 
+  def gen_job_name
+    $q_tick += 1
+    Time.now.seconds_since_midnight.to_s + '.' + $q_tick.to_s
   end
 
 end
