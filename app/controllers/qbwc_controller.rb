@@ -41,6 +41,7 @@ class QbwcController < ApplicationController
   rescue Exception => e
     Rails.logger.info "Error ==>"
     Rails.logger.info(e.class.name + ':' + e.to_s)
+    Rails.logger.info e.backtrace.join("\n")
   end
 
   def set_response_handler(job)
