@@ -73,10 +73,7 @@ class QbwcController < ApplicationController
     mods = CustomerPuller.modifications
     news = CustomerPuller.news
 
-    Rails.logger.info "Here in build ===>"
-    Rails.logger.info news.inspect
-
-    return if mods.size == 0 || news.size == 0
+    return if mods.size == 0 && news.size == 0
 
     request_hash = { :xml_attributes =>  { "onError" => "stopOnError" } }
 
