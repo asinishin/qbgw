@@ -81,7 +81,7 @@ class QbwcController < ApplicationController
       edit_sequence = r['customer_ret']['edit_sequence']
       CustomerRef.update_all(
 	"edit_sequence = #{ edit_sequence }",
-	"id = #{ customer_ref.id } AND edit_sequence < #{ edit_sequence }"
+	"id = #{ customer_ref.id } AND (edit_sequence < #{ edit_sequence } OR edit_sequence IS NULL)"
       )
     end
     if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'add'
