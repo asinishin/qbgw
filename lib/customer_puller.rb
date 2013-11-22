@@ -11,7 +11,7 @@ class CustomerPuller
       CustomerBit.joins(:customer_ref).where(
 	%Q{
 	  customer_refs.edit_sequence IS NOT NULL AND
-	  customer_bits.operation = ?
+	  customer_bits.operation = ? AND
 	  customer_bits.status = ?
 	}.squish, 'upd', 'wait'
       ).order('customer_bits.input_order').first(10).map do |delta|
@@ -26,7 +26,7 @@ class CustomerPuller
       CustomerBit.joins(:customer_ref).where(
 	%Q{
 	  customer_refs.edit_sequence IS NULL AND
-	  customer_bits.operation = ?
+	  customer_bits.operation = ? AND
 	  customer_bits.status = ?
 	}.squish, 'add', 'wait'
       ).order('customer_bits.id').first(10).map do |delta|
