@@ -47,7 +47,7 @@ class QbwcController < ApplicationController
   def set_response_handler(job_name)
     Rails.logger.info "Here I am ==> 1 #{job_name}"
     QBWC.jobs[job_name].set_response_proc do |r|
-      QBWC.jobs.delete(job_name)
+      #QBWC.jobs.delete(job_name)
       Rails.logger.info "Here I am ==> 2 #{job_name}"
 
       delta = CustomerBit.where(
