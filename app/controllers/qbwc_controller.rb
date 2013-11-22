@@ -67,24 +67,27 @@ class QbwcController < ApplicationController
 
   def process_response_item(r)
     delta = nil
+    customer_ref = nil
     if r['xml_attributes']['requestID']
       delta = CustomerBit.where(
 	"id = #{ r['xml_attributes']['requestID'] } AND status = 'work'"
       ).first
+      customer_ref = delta.customer_ref
+    end
+    if delta && r['customer_ret']['edit_sequence']
+      customer_ref.update_attribute(:edit_sequence, r['customer_ret']['edit_sequence'])
+    end
+    if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'add'
+      customer_ref.update_attribute(:qb_id, r['customer_ret']['list_id'])
     end
     if r['xml_attributes']['statusCode'] != '0'
       Rails.logger.info "Error: Quickbooks returned an error ==>"
       Rails.logger.info r.inspect
       CustomerPuller.reset(delta.id) if delta
-    elsif delta
-      if delta.operation == 'add'
-	customer_ref = delta.customer_ref
-	customer_ref.qb_id         = r['customer_ret']['list_id']
-	customer_ref.edit_sequence = r['customer_ret']['edit_sequence']
-	customer_ref.save!
-      end
-      CustomerPuller.done(delta.id)
     else
+      CustomerPuller.done(delta.id) if delta
+    end
+    if delta.nil?
       Rails.logger.info "Error: Quickbooks request is not found ==>"
       Rails.logger.info r.inspect
     end
