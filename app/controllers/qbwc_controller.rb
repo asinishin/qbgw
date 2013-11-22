@@ -48,7 +48,6 @@ class QbwcController < ApplicationController
     Rails.logger.info "Here I am ==> 1 #{job_name}"
     QBWC.jobs[job_name].set_response_proc do |r|
       Rails.logger.info "Here I am ==> 2 #{job_name}"
-      Rails.logger.info r.inspect
 
       if r['customer_mod_rs'].respond_to?(:to_ary) # Array?
         r['customer_mod_rs'].each{ |item| process_response_item item }
@@ -106,7 +105,7 @@ class QbwcController < ApplicationController
 	    :xml_attributes => { "requestID" => delta.id },
 	    :customer_mod   => {
 	      :list_id       => delta.customer_ref.qb_id,
-	      :edit_sequence => delta.customer_ref.edit_sequence + delta.input_order,
+	      :edit_sequence => delta.customer_ref.edit_sequence + delta.input_order - 1,
 	      :name          => delta.first_name + ' ' + delta.last_name,
 	      :first_name    => delta.first_name,
 	      :last_name     => delta.last_name
