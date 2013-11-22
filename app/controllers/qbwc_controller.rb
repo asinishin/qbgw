@@ -49,15 +49,18 @@ class QbwcController < ApplicationController
     QBWC.jobs[job_name].set_response_proc do |r|
       Rails.logger.info "Here I am ==> 2 #{job_name}"
 
-      if r['customer_mod_rs'].respond_to?(:to_ary) # Array?
+      # CustomerModRs array case
+      if r['customer_mod_rs'].respond_to?(:to_ary)
         r['customer_mod_rs'].each{ |item| process_response_item item }
       end
 
-      if r['customer_add_rs'].respond_to?(:to_ary) # Array?
+      # CustomerAddRs array case
+      if r['customer_add_rs'].respond_to?(:to_ary)
         r['customer_add_rs'].each{ |item| process_response_item item }
       end
 
-      if r['xml_attributes']['requestID'] # Single request
+      # Single request case
+      if r['xml_attributes']['requestID']
         process_response_item r
       end
 
