@@ -14,7 +14,7 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
       $q_tick = 0
 
       $customers_queue.subscribe do |delivery_info, metadata, payload|
-	customer = CustomerBeef.decode(msg_content)
+	customer = CustomerBeef.decode(payload)
 	Rails.logger.info "Here Push operation ==> #{ customer.operation }"
 	if customer.operation == 'add'
 	  CustomerPusher.add_customer(customer)
