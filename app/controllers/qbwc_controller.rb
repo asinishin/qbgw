@@ -50,6 +50,8 @@ class QbwcController < ApplicationController
       Rails.logger.info "Here I am ==> 2 #{job_name}"
       Rails.logger.info r.inspect
 
+      r = r['qbxml_msgs_rs'] if r['qbxml_msgs_rs']
+
       # CustomerModRs array case
       if r['customer_mod_rs'].respond_to?(:to_ary)
         r['customer_mod_rs'].each{ |item| process_response_item item }
