@@ -58,6 +58,7 @@ class JobProcessor
 	  ]
 	}
       end
+      requests
     end
 
     QBWC.jobs[:customer_add].set_response_proc do |r|
