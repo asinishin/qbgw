@@ -31,7 +31,23 @@ class QbwcController < ApplicationController
       return
     end
 
-    build_qbxml_request
+    # Processing modifications
+    loop do
+      delta = CustomerPuller.modification_bit
+      if delta.nil?
+        break
+      end
+      build_qbxml_request(delta)
+    end
+
+    # Processing new customers
+    loop do
+      delta = CustomerPuller.creation_bit
+      if delta.nil?
+        break
+      end
+      build_qbxml_request(delta)
+    end
 
     req = request
     puts "========== #{ params["Envelope"]["Body"].keys.first}  =========="
@@ -49,24 +65,6 @@ class QbwcController < ApplicationController
     QBWC.jobs[job_name].set_response_proc do |r|
       Rails.logger.info "Here I am ==> 2 #{job_name}"
       Rails.logger.info r.inspect
-
-      r = r['qbxml_msgs_rs'] if r['qbxml_msgs_rs']
-
-      # CustomerModRs array case
-      if r['customer_mod_rs'].respond_to?(:to_ary)
-        r['customer_mod_rs'].each{ |item| process_response_item item }
-      # Or one item
-      elsif r['customer_mod_rs']
-        process_response_item r['customer_mod_rs']
-      end
-
-      # CustomerAddRs array case
-      if r['customer_add_rs'].respond_to?(:to_ary)
-        r['customer_add_rs'].each{ |item| process_response_item item }
-      # Or one item
-      elsif r['customer_add_rs']
-        process_response_item r['customer_add_rs']
-      end
 
       # Single request case
       if r['xml_attributes']['requestID']
@@ -113,17 +111,12 @@ class QbwcController < ApplicationController
     Rails.logger.info e.backtrace.join("\n")
   end
 
-  def build_qbxml_request
-    mods = CustomerPuller.modifications
-    news = CustomerPuller.news
-
-    return if mods.size == 0 && news.size == 0
-
+  def build_qbxml_request(delta)
     request_hash = { :xml_attributes =>  { "onError" => "stopOnError" } }
 
-    if mods.size > 0
+    if delta.operation == 'upd' 
       request_hash.merge!(
-	:customer_mod_rq => mods.map do |delta|
+	:customer_mod_rq => [
 	  {
 	    :xml_attributes => { "requestID" => delta.id },
 	    :customer_mod   => {
@@ -134,13 +127,13 @@ class QbwcController < ApplicationController
 	      :last_name     => delta.last_name
 	    }
 	  }
-	end
+	]
       )
     end
 
-    if news.size > 0
+    if delta.operation == 'add'
       request_hash.merge!(
-	:customer_add_rq => news.map do |delta|
+	:customer_add_rq => [
 	  {
 	    :xml_attributes => { "requestID" => delta.id },
 	    :customer_add   => {
@@ -149,7 +142,7 @@ class QbwcController < ApplicationController
 	      :last_name  => delta.last_name
 	    }
 	  }
-	end
+	]
       )
     end
     
