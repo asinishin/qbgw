@@ -1,6 +1,6 @@
 require 'customer_puller'
 
-class JobProcessor
+class CustomerJobProcessor
 
   def self.start
     # Processing modifications
@@ -38,7 +38,7 @@ class JobProcessor
       Rails.logger.info "Here I am ==> Customer Update Callback"
       Rails.logger.info r.inspect
 
-      JobProcessor::process_response r
+      CustomerJobProcessor::process_response r
 
     end
 
@@ -75,7 +75,7 @@ class JobProcessor
       Rails.logger.info "Here I am ==> Customer Add Callback"
       Rails.logger.info r.inspect
 
-      JobProcessor::process_response r
+      CustomerJobProcessor::process_response r
 
     end
   end
@@ -121,23 +121,24 @@ class JobProcessor
 
     # CustomerModRs array case
     if r['customer_mod_rs'].respond_to?(:to_ary)
-      r['customer_mod_rs'].each{ |item| JobProcessor::process_response_item item }
+      r['customer_mod_rs'].each{ |item| CustomerJobProcessor::process_response_item item }
     # Or one item
     elsif r['customer_mod_rs']
-      JobProcessor::process_response_item r['customer_mod_rs']
+      CustomerJobProcessor::process_response_item r['customer_mod_rs']
     end
 
     # CustomerAddRs array case
     if r['customer_add_rs'].respond_to?(:to_ary)
-      r['customer_add_rs'].each{ |item| JobProcessor::process_response_item item }
+      r['customer_add_rs'].each{ |item| CustomerJobProcessor::process_response_item item }
     # Or one item
     elsif r['customer_add_rs']
-      JobProcessor::process_response_item r['customer_add_rs']
+      CustomerJobProcessor::process_response_item r['customer_add_rs']
     end
 
     # Single request case
     if r['xml_attributes']['requestID']
-      JobProcessor::process_response_item r
+      CustomerJobProcessor::process_response_item r
     end
   end
+
 end
