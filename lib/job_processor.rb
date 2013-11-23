@@ -8,7 +8,8 @@ class JobProcessor
       delta = CustomerPuller.modification_bit
 
       if delta
-	{ :xml_attributes =>  { "onError" => "stopOnError" }, 
+	[{ 
+	  :xml_attributes =>  { "onError" => "stopOnError" }, 
 	  :customer_mod_rq => [
 	    {
 	      :xml_attributes => { "requestID" => delta.id },
@@ -21,7 +22,7 @@ class JobProcessor
 	      }
 	    }
 	  ]
-	}
+	}]
       end
     end
 
@@ -38,7 +39,8 @@ class JobProcessor
       delta = CustomerPuller.creation_bit
 
       if delta
-	{ :xml_attributes =>  { "onError" => "stopOnError" }, 
+	[{ 
+	  :xml_attributes =>  { "onError" => "stopOnError" }, 
 	  :customer_add_rq => [
 	    {
 	      :xml_attributes => { "requestID" => delta.id },
@@ -49,7 +51,7 @@ class JobProcessor
 	      }
 	    }
 	  ]
-	}
+	}]
       end
     end
 
