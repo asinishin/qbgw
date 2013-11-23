@@ -1,4 +1,4 @@
-require 'job_processor'
+require 'customer_job_processor'
 
 QBWC.configure do |c|
   
