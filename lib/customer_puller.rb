@@ -20,7 +20,7 @@ class CustomerPuller
 	  )
 	}.squish, 'upd', 'wait', 'work'
       ).order('customer_bits.id').readonly(false).first
-      delta.update_attributes(status: 'work')
+      delta.update_attributes(status: 'work') if delta
       delta
     end
   end
@@ -34,7 +34,7 @@ class CustomerPuller
 	  customer_bits.status = ?
 	}.squish, 'add', 'wait'
       ).order('customer_bits.id').readonly(false).first
-      delta.update_attributes(status: 'work')
+      delta.update_attributes(status: 'work') if delta
       delta
     end
   end
@@ -42,9 +42,7 @@ class CustomerPuller
   def self.done(delta_id)
     lock.synchronize do
       delta = CustomerBit.where("id = #{ delta_id } AND status = 'work'").first
-      if delta
-        delta.update_attributes(status: 'done')
-      end
+      delta.update_attributes(status: 'done') if delta
       delta
     end
   end
@@ -52,9 +50,7 @@ class CustomerPuller
   def self.reset(delta_id)
     lock.synchronize do
       delta = CustomerBit.where("id = #{ delta_id } AND status = 'work'").first
-      if delta
-        delta.update_attributes(status: 'wait')
-      end
+      delta.update_attributes(status: 'wait') if delta
       delta
     end
   end
