@@ -89,7 +89,7 @@ class JobProcessor
       ).first
       customer_ref = delta.customer_ref if delta
     end
-    if delta && r['customer_ret']['edit_sequence']
+    if delta && r['customer_ret'] && r['customer_ret']['edit_sequence']
       edit_sequence = r['customer_ret']['edit_sequence']
       CustomerRef.update_all(
 	"edit_sequence = #{ edit_sequence }",
