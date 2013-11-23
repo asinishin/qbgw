@@ -40,4 +40,4 @@ QBWC.configure do |c|
   
 end
 
-JobProcessor::start
+CustomerJobProcessor::start
