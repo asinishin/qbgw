@@ -6,13 +6,18 @@ class JobProcessor
     # Processing modifications
     QBWC.add_job(:customer_upd) do
       request = nil
+      mods = []
       10.times.each do
 	delta = CustomerPuller.modification_bit
 	break if delta.nil?
 
-	requests << { 
+	mods << delta
+      end
+
+      if mods.size > 0
+	request = [{ 
 	  :xml_attributes =>  { "onError" => "stopOnError" }, 
-	  :customer_mod_rq => [
+	  :customer_mod_rq => mods.map do |delta|
 	    {
 	      :xml_attributes => { "requestID" => delta.id },
 	      :customer_mod   => {
@@ -23,8 +28,8 @@ class JobProcessor
 		:last_name     => delta.last_name
 	      }
 	    }
-	  ]
-	}
+	  end 
+	}]
       end
       request
     end
