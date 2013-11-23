@@ -5,7 +5,7 @@ class JobProcessor
   def self.start
     # Processing modifications
     QBWC.add_job(:customer_upd) do
-      requests = []
+      request = nil
       10.times.each do
 	delta = CustomerPuller.modification_bit
 	break if delta.nil?
@@ -26,7 +26,7 @@ class JobProcessor
 	  ]
 	}
       end
-      requests
+      request
     end
 
     QBWC.jobs[:customer_upd].set_response_proc do |r|
@@ -39,14 +39,19 @@ class JobProcessor
 
     # Processing new customers
     QBWC.add_job(:customer_add) do
-      requests = []
+      request = nil
+      news = []
       10.times.each do
 	delta = CustomerPuller.creation_bit
 	break if delta.nil?
+        
+	news << delta
+      end
 
-	requests << { 
-	  :xml_attributes =>  { "onError" => "stopOnError" }, 
-	  :customer_add_rq => [
+      if news.size > 0
+	request = [{ 
+	  :xml_attributes =>  { "onError" => "stopOnError" },
+	  :customer_mod_rq => news.map do |delta|
 	    {
 	      :xml_attributes => { "requestID" => delta.id },
 	      :customer_add   => {
@@ -55,10 +60,10 @@ class JobProcessor
 		:last_name  => delta.last_name
 	      }
 	    }
-	  ]
-	}
+	  end
+	}]
       end
-      requests
+      request
     end
 
     QBWC.jobs[:customer_add].set_response_proc do |r|
