@@ -13,7 +13,7 @@ class CustomerPuller
 	  customer_refs.edit_sequence IS NOT NULL
 	  AND customer_bits.operation = ?
 	  AND customer_bits.status = ?
-	  AND NOT EXIST (
+	  AND NOT EXISTS (
 	    SELECT 'x' FROM customer_bits b
 	    WHERE b.status = ?
 	    AND b.customer_ref_id = customer_refs.id
