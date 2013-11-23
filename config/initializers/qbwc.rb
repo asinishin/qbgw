@@ -1,3 +1,5 @@
+require 'job_processor'
+
 QBWC.configure do |c|
   
   #Currently Only supported for single logins. 
@@ -37,3 +39,5 @@ QBWC.configure do |c|
   # c.warm_boot = false
   
 end
+
+JobProcessor::start
