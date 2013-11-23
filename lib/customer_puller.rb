@@ -10,10 +10,15 @@ class CustomerPuller
     lock.synchronize do
       CustomerBit.joins(:customer_ref).where(
 	%Q{
-	  customer_refs.edit_sequence IS NOT NULL AND
-	  customer_bits.operation = ? AND
-	  customer_bits.status = ?
-	}.squish, 'upd', 'wait'
+	  customer_refs.edit_sequence IS NOT NULL
+	  AND customer_bits.operation = ?
+	  AND customer_bits.status = ?
+	  AND NOT EXIST (
+	    SELECT 'x' FROM customer_bits b
+	    WHERE b.status = ?
+	    AND b.customer_ref_id = customer_refs.id
+	  )
+	}.squish, 'upd', 'wait', 'work'
       ).order('customer_bits.id').readonly(false).first(1).map do |delta|
         delta.update_attributes(status: 'work')
 	delta
