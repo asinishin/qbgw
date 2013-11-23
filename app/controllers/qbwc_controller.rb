@@ -48,6 +48,7 @@ class QbwcController < ApplicationController
     Rails.logger.info "Here I am ==> 1 #{job_name}"
     QBWC.jobs[job_name].set_response_proc do |r|
       Rails.logger.info "Here I am ==> 2 #{job_name}"
+      Rails.logger.info r.inspect
 
       # CustomerModRs array case
       if r['customer_mod_rs'].respond_to?(:to_ary)
