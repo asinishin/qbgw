@@ -1,8 +1,8 @@
 QBWC.configure do |c|
   
   #Currently Only supported for single logins. 
-  c.username = "bsprenger"
-  c.password = "t3l3w0rk"
+  c.username = ENV['QBGW_USERNAME']
+  c.password = ENV['QBGW_PASSWORD']
   
   #Path to Company File (blank for open or named path or function etc..)
   c.company_file_path = ""
@@ -23,7 +23,7 @@ QBWC.configure do |c|
   # will speed up qbwc session time (and potentially fix timeout issues) but
   # will necessarily eat up more memory since every response must be stored
   # until it is processed. 
-  c.delayed_processing = false
+  c.delayed_processing = true
 
   # In the event of an error in the communication process do you wish the sync to stop or blaze through
   #
