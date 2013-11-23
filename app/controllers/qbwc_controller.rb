@@ -52,11 +52,17 @@ class QbwcController < ApplicationController
       # CustomerModRs array case
       if r['customer_mod_rs'].respond_to?(:to_ary)
         r['customer_mod_rs'].each{ |item| process_response_item item }
+      # Or one item
+      elsif r['customer_mod_rs']
+        process_response_item r['customer_mod_rs']
       end
 
       # CustomerAddRs array case
       if r['customer_add_rs'].respond_to?(:to_ary)
         r['customer_add_rs'].each{ |item| process_response_item item }
+      # Or one item
+      elsif r['customer_add_rs']
+        process_response_item r['customer_add_rs']
       end
 
       # Single request case
