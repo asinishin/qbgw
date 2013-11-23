@@ -56,7 +56,7 @@ class JobProcessor
       if news.size > 0
 	request = [{ 
 	  :xml_attributes =>  { "onError" => "stopOnError" },
-	  :customer_mod_rq => news.map do |delta|
+	  :customer_add_rq => news.map do |delta|
 	    {
 	      :xml_attributes => { "requestID" => delta.id },
 	      :customer_add   => {
