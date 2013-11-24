@@ -24,7 +24,7 @@ class ItemServiceJobProcessor
 		:list_id       => delta.item_service_ref.qb_id,
 		:edit_sequence => delta.item_service_ref.edit_sequence,
 		:name          => delta.name,
-		:sales_and_purchase_mod => {
+		:sales_or_purchase_mod => {
 		  :desc => delta.description,
 		  :price => '0.0',
                   :account_ref => { full_name: delta.account_ref }
