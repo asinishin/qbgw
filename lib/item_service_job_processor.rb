@@ -26,7 +26,6 @@ class ItemServiceJobProcessor
 		:name          => delta.name,
 		:sales_or_purchase_mod => {
 		  :desc => delta.description,
-		  :price => '0.0',
                   :account_ref => { full_name: delta.account_ref }
 		}
 	      }
