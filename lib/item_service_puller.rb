@@ -10,7 +10,7 @@ class ItemServicePuller
     lock.synchronize do
       delta = ItemServiceBit.joins(:item_service_ref).where(
 	%Q{
-	  item_service_ref.edit_sequence IS NOT NULL
+	  item_service_refs.edit_sequence IS NOT NULL
 	  AND item_service_bits.operation = ?
 	  AND item_service_bits.status = ?
 	  AND NOT EXISTS (
