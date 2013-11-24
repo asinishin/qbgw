@@ -28,7 +28,7 @@ class ItemServiceJobProcessor
 		:sales_or_purchase => {
 		  :desc => delta.description,
 		  :price => '0.0',
-                  :account_ref => { full_name: delta.last_name }
+                  :account_ref => { full_name: delta.account_ref }
 		}
 	      }
 	    }
@@ -69,7 +69,7 @@ class ItemServiceJobProcessor
 		:sales_or_purchase => {
 		  :desc => delta.description,
 		  :price => '0.0',
-                  :account_ref => { full_name: delta.last_name }
+                  :account_ref => { full_name: delta.account_ref }
 		}
 	      }
 	    }

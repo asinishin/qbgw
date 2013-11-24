@@ -1,5 +1,8 @@
 require 'customer_beef'
 require 'customer_pusher'
+require 'item_service_beef'
+require 'item_service_pusher'
+
 
 if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put this in an initializer
   PhusionPassenger.on_event(:starting_worker_process) do |forked|
@@ -12,7 +15,7 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
 
       customers_queue.subscribe do |delivery_info, metadata, payload|
 	customer = CustomerBeef.decode(payload)
-	Rails.logger.info "Here Push operation ==> #{ customer.operation }"
+	Rails.logger.info "Customer pushed ==> #{ customer.operation }"
 	if customer.operation == 'add'
 	  CustomerPusher.add_customer(customer)
 	else # update operation
@@ -24,7 +27,7 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
 
       item_services_queue.subscribe do |delivery_info, metadata, payload|
 	item_service = ItemServiceBeef.decode(payload)
-	Rails.logger.info "Here Push operation ==> #{ item_service.operation }"
+	Rails.logger.info "Item service pushed ==> #{ item_service.operation }"
 	if item_service.operation == 'add'
 	  ItemServicePusher.add_item(item_service)
 	else # update operation
