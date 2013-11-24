@@ -20,6 +20,18 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
 	end
       end
 
+      item_services_queue = q_channel.queue("item_services", :durable => true, :auto_delete => false)
+
+      item_services_queue.subscribe do |delivery_info, metadata, payload|
+	item_service = ItemServiceBeef.decode(payload)
+	Rails.logger.info "Here Push operation ==> #{ item_service.operation }"
+	if item_service.operation == 'add'
+	  ItemServicePusher.add_item(item_service)
+	else # update operation
+	  ItemServicePusher.modify_item(item_service)
+	end
+      end
+
       $q_tick = 0
     end
   end
