@@ -8,7 +8,7 @@ class SalesReceiptPuller
 
   def self.removal_bit
     lock.synchronize do
-      delta = SalesReceiptBit.joins(:item_service_ref).where(
+      delta = SalesReceiptBit.joins(:sales_receipt_ref).where(
 	%Q{
 	  sales_receipt_refs.edit_sequence IS NOT NULL
 	  AND sales_receipt_bits.operation = ?
