@@ -53,10 +53,12 @@ class SalesReceiptJobProcessor
 	request = [{ 
 	  :xml_attributes => { "onError" => "stopOnError" },
 	  :sales_receipt_add_rq => news.map do |delta|
+	    customer = CustomerRef.where("sat_id = #{ delta.customer_id }").first
+	    customer_ref = customer.qb_id if customer
 	    {
 	      :xml_attributes => { "requestID" => delta.id },
 	      :sales_receipt_add => {
-	        :customer_ref => { list_id: CustomerRef.where("sat_id = #{ delta.customer_id }").first },
+	        :customer_ref => { list_id: customer_ref },
 		:ref_number => delta.ref_number,
 		:txn_date   => delta.txn_date
 	      }
