@@ -3,7 +3,8 @@ source 'https://rubygems.org'
 gem 'rails', '3.2.15'
 gem 'mysql2'
 
-gem 'qbwc'
+gem 'quickbooks_api', :git => 'git://github.com/asinishin/quickbooks_api.git'
+gem 'qbwc',           :git => 'git://github.com/asinishin/qbwc.git'
 gem "bunny"
 gem "beefcake"
 
