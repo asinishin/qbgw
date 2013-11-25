@@ -6,15 +6,11 @@ class SalesReceiptPuller
     @@lock ||= Monitor.new
   end
 
-  def self.next_bit(op)
+  def self.next_bit
     lock.synchronize do
       delta = SalesReceiptPuller::pull_next_bit
-      if delta && delta.operation == op
-	delta.update_attributes(status: 'work')
-	delta
-      else
-        nil
-      end
+      delta.update_attributes(status: 'work') if delta
+      delta
     end
   end
 

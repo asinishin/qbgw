@@ -3,89 +3,79 @@ require 'sales_receipt_puller'
 class SalesReceiptJobProcessor
 
   def self.start
-    # Processing removal
-    QBWC.add_job(:sales_receipt_del) do
-      request = nil
-      dels = []
-      10.times.each do
-	delta = SalesReceiptPuller.next_bit('del')
-	break if delta.nil?
-
-	dels << delta
-      end
-
-      if dels.size > 0
-	request = [{ 
-	  :xml_attributes => { "onError" => "stopOnError" }, 
-	  :txn_del_rq => dels.map do |delta|
-	    {
-	      :xml_attributes => { "requestID" => delta.id },
-	      :txn_del_type   => "SalesReceipt",
-	      :txn_id => delta.sales_receipt_ref.qb_id
-	    }
-	  end 
-	}]
-      end
-      request
+    QBWC.add_job(:sales_receipt) do
+      SalesReceiptJobProcessor::process_sales_receipts
     end
 
-    QBWC.jobs[:sales_receipt_del].set_response_proc do |r|
-      Rails.logger.info "Here I am ==> Sales Receipt Removal Callback"
+    QBWC.jobs[:sales_receipt].set_response_proc do |r|
+      Rails.logger.info "==> Sales Receipt Callback"
       Rails.logger.info r.inspect
 
       SalesReceiptJobProcessor::process_response r
 
     end
+  end
 
-    # Processing new sales receipt 
-    QBWC.add_job(:sales_receipt_add) do
-      request = nil
-      news = []
-      10.times.each do
-	delta = SalesReceiptPuller.next_bit('add')
-	break if delta.nil?
-        
-	news << delta
-      end
+  def self.process_sales_receipts
+    request = nil
+    bits = []
+    10.times.each do
+      delta = SalesReceiptPuller.next_bit
+      break if delta.nil?
 
-      if news.size > 0
-	request = [{ 
-	  :xml_attributes => { "onError" => "stopOnError" },
-	  :sales_receipt_add_rq => news.map do |delta|
-	    customer = CustomerRef.where("sat_id = #{ delta.customer_id }").first
-	    customer_ref = customer.qb_id if customer
-	    lines = delta.sales_receipt_lines 
-	    {
-	      :xml_attributes => { "requestID" => delta.id },
-	      :sales_receipt_add => {
-	        :customer_ref => { list_id: customer_ref },
-		:ref_number => delta.ref_number,
-		:txn_date   => delta.txn_date,
-                :sales_receipt_line_add => lines.map do |line|
-		  item = ItemServiceRef.where("sat_id = #{ line.item_id }").first
-		  item_ref = item.qb_id if item
-		  {
-		    :item_ref  => { list_id: item_ref },
-		    :quantity  => line.quantity,
-		    :amount    => line.amount,
-		    :class_ref => { full_name: line.class_ref }
-		  }
-		end
-	      }
+      bits << delta
+    end
+
+    if bits.size == 0
+      return nil
+    end
+
+    request = { :xml_attributes => { "onError" => "stopOnError" } }
+
+    dels = bits.select { |v| v.operation == 'del' }
+    if dels.size > 0
+      request.merge!( 
+	:txn_del_rq => dels.map do |delta|
+	  {
+	    :xml_attributes => { "requestID" => delta.id },
+	    :txn_del_type   => "SalesReceipt",
+	    :txn_id => delta.sales_receipt_ref.qb_id
+	  }
+	end 
+      )
+    end
+
+    news = bits.select { |v| v.operation == 'add' }
+    if news.size > 0
+      request.merge!( 
+	:sales_receipt_add_rq => news.map do |delta|
+	  customer = CustomerRef.where("sat_id = #{ delta.customer_id }").first
+	  customer_ref = customer.qb_id if customer
+	  lines = delta.sales_receipt_lines 
+	  {
+	    :xml_attributes => { "requestID" => delta.id },
+	    :sales_receipt_add => {
+	      :customer_ref => { list_id: customer_ref },
+	      :ref_number => delta.ref_number,
+	      :txn_date   => delta.txn_date,
+	      :sales_receipt_line_add => lines.map do |line|
+		item = ItemServiceRef.where("sat_id = #{ line.item_id }").first
+		item_ref = item.qb_id if item
+		{
+		  :item_ref  => { list_id: item_ref },
+		  :quantity  => line.quantity,
+		  :amount    => line.amount,
+		  :class_ref => { full_name: line.class_ref }
+		}
+	      end
 	    }
-	  end
-	}]
-      end
-      request
+	  }
+	end
+      )
     end
 
-    QBWC.jobs[:sales_receipt_add].set_response_proc do |r|
-      Rails.logger.info "Here I am ==> Sales Receipt Add Callback"
-      Rails.logger.info r.inspect
+    [request]
 
-      SalesReceiptJobProcessor::process_response r
-
-    end
   rescue Exception => e
     Rails.logger.info "Error ==>"
     Rails.logger.info(e.class.name + ':' + e.to_s)
