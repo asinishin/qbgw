@@ -55,12 +55,23 @@ class SalesReceiptJobProcessor
 	  :sales_receipt_add_rq => news.map do |delta|
 	    customer = CustomerRef.where("sat_id = #{ delta.customer_id }").first
 	    customer_ref = customer.qb_id if customer
+	    lines = delta.sales_receipt_lines 
 	    {
 	      :xml_attributes => { "requestID" => delta.id },
 	      :sales_receipt_add => {
 	        :customer_ref => { list_id: customer_ref },
 		:ref_number => delta.ref_number,
-		:txn_date   => delta.txn_date
+		:txn_date   => delta.txn_date,
+                :sales_receipt_line_add => lines.map do |line|
+		  item = ItemServiceRef.where("sat_id = #{ line.item_id }").first
+		  item_ref = item.qb_id if item
+		  {
+		    :item_ref  => { list_id: item_ref },
+		    :quantity  => line.quantity,
+		    :amount    => line.amount,
+		    :class_ref => { full_name: line.class_ref }
+		  }
+		end
 	      }
 	    }
 	  end
