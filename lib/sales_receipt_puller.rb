@@ -18,7 +18,7 @@ class SalesReceiptPuller
 	    WHERE b.status = ?
 	    AND b.sales_receipt_ref_id = sales_receipt_refs.id
 	  )
-	}.squish, 'upd', 'wait', 'work'
+	}.squish, 'del', 'wait', 'work'
       ).order('sales_receipt_bits.id').readonly(false).first
       delta.update_attributes(status: 'work') if delta
       delta
