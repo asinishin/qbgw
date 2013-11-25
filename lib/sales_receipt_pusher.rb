@@ -9,7 +9,7 @@ class SalesReceiptPusher
   def self.delete_receipt(sales_receipt)
     sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
     if sales_receipt_ref
-      SalesReceiptPusher::create_bit(item, 'del', sales_receipt.id)
+      SalesReceiptPusher::create_bit(sales_receipt, 'del', sales_receipt_ref.id)
     else
       Rails.logger.info "Update Error: sales receipt is not found ==>#{ sales_receipt.inspect }"
     end
