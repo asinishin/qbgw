@@ -8,7 +8,7 @@ class SalesReceiptJobProcessor
       request = nil
       dels = []
       10.times.each do
-	delta = SalesReceiptPuller.removal_bit
+	delta = SalesReceiptPuller.next_bit('del')
 	break if delta.nil?
 
 	dels << delta
@@ -42,7 +42,7 @@ class SalesReceiptJobProcessor
       request = nil
       news = []
       10.times.each do
-	delta = SalesReceiptPuller.creation_bit
+	delta = SalesReceiptPuller.next_bit('add')
 	break if delta.nil?
         
 	news << delta
@@ -86,6 +86,10 @@ class SalesReceiptJobProcessor
       SalesReceiptJobProcessor::process_response r
 
     end
+  rescue Exception => e
+    Rails.logger.info "Error ==>"
+    Rails.logger.info(e.class.name + ':' + e.to_s)
+    Rails.logger.info e.backtrace.join("\n")
   end
 
   def self.process_response_item(r)
@@ -121,10 +125,6 @@ class SalesReceiptJobProcessor
       Rails.logger.info "Error: Quickbooks request is not found ==>"
       Rails.logger.info r.inspect
     end
-  rescue Exception => e
-    Rails.logger.info "Error ==>"
-    Rails.logger.info(e.class.name + ':' + e.to_s)
-    Rails.logger.info e.backtrace.join("\n")
   end
 
   def self.process_response(r)
@@ -150,6 +150,10 @@ class SalesReceiptJobProcessor
     if r['xml_attributes']['requestID']
       SalesReceiptJobProcessor::process_response_item r
     end
+  rescue Exception => e
+    Rails.logger.info "Error ==>"
+    Rails.logger.info(e.class.name + ':' + e.to_s)
+    Rails.logger.info e.backtrace.join("\n")
   end
 
 end

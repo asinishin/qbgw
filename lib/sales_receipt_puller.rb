@@ -6,39 +6,15 @@ class SalesReceiptPuller
     @@lock ||= Monitor.new
   end
 
-  def self.removal_bit
+  def self.next_bit(op)
     lock.synchronize do
-      delta = SalesReceiptBit.where(
-	%Q{
-	  sales_receipt_bits.operation = ?
-	  AND sales_receipt_bits.status = ?
-	  AND NOT EXISTS (
-	    SELECT 'x' FROM sales_receipt_bits b
-	    WHERE b.status = ?
-	    AND b.sales_receipt_ref_id = sales_receipt_bits.sales_receipt_ref_id
-	  )
-	}.squish, 'del', 'wait', 'work'
-      ).order('sales_receipt_bits.id').first
-      delta.update_attributes(status: 'work') if delta
-      delta
-    end
-  end
-
-  def self.creation_bit
-    lock.synchronize do
-      delta = SalesReceiptBit.where(
-	%Q{
-	  sales_receipt_bits.operation = ?
-	  AND sales_receipt_bits.status = ?
-	  AND NOT EXISTS (
-	    SELECT 'x' FROM sales_receipt_bits b
-	    WHERE b.status = ?
-	    AND b.sales_receipt_ref_id = sales_receipt_bits.sales_receipt_ref_id
-	  )
-	}.squish, 'add', 'wait', 'work'
-      ).order('sales_receipt_bits.id').first
-      delta.update_attributes(status: 'work') if delta
-      delta
+      delta = SalesReceiptPuller::pull_next_bit
+      if delta && delta.operation == op
+	delta.update_attributes(status: 'work')
+	delta
+      else
+        nil
+      end
     end
   end
 
@@ -56,6 +32,22 @@ class SalesReceiptPuller
       delta.update_attributes(status: 'wait') if delta
       delta
     end
+  end
+ 
+protected
+
+  def self.pull_next_bit
+    delta = SalesReceiptBit.where(
+      %Q{
+	sales_receipt_bits.status = ?
+	AND NOT EXISTS (
+	  SELECT 'x' FROM sales_receipt_bits b
+	  WHERE b.status = ?
+	  AND b.sales_receipt_ref_id = sales_receipt_bits.sales_receipt_ref_id
+	)
+      }.squish, 'wait', 'work'
+    ).order('sales_receipt_bits.id').first
+    delta
   end
 
 end
