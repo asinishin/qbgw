@@ -107,6 +107,9 @@ class SalesReceiptJobProcessor
     if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'add'
       sales_receipt_ref.update_attribute(:qb_id, r['sales_receipt_ret']['txn_id'])
     end
+    if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'del'
+      sales_receipt_ref.update_attributes(qb_id: nil, edit_sequence: nil)
+    end
     if r['xml_attributes']['statusCode'] != '0'
       Rails.logger.info "Error: Quickbooks returned an error ==>"
       Rails.logger.info r.inspect

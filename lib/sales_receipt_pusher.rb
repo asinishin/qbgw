@@ -1,8 +1,16 @@
 class SalesReceiptPusher
 
   def self.add_receipt(sales_receipt)
-    sales_receipt_ref = SalesReceiptRef.new(sat_id: sales_receipt.sat_id)
-    sales_receipt_ref.save!
+    sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
+    if sales_receipt_ref
+      if sales_receipt_ref.qb_id
+	Rails.logger.info "Add Error: sales receipt already exists ==>#{ sales_receipt.inspect }"
+        return
+      end
+    else
+      sales_receipt_ref = SalesReceiptRef.new(sat_id: sales_receipt.sat_id)
+      sales_receipt_ref.save!
+    end
     SalesReceiptPusher::create_bit(sales_receipt, 'add', sales_receipt_ref.id)
   end 
 
@@ -11,7 +19,7 @@ class SalesReceiptPusher
     if sales_receipt_ref
       SalesReceiptPusher::create_bit(sales_receipt, 'del', sales_receipt_ref.id)
     else
-      Rails.logger.info "Update Error: sales receipt is not found ==>#{ sales_receipt.inspect }"
+      Rails.logger.info "Delete Error: sales receipt is not found ==>#{ sales_receipt.inspect }"
     end
   end
 
