@@ -84,7 +84,7 @@ class SalesReceiptJobProcessor
       Rails.logger.info "Here I am ==> Sales Receipt Add Callback"
       Rails.logger.info r.inspect
 
-      SalesReceptJobProcessor::process_response r
+      SalesReceiptJobProcessor::process_response r
 
     end
   end
