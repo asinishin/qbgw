@@ -8,18 +8,17 @@ class SalesReceiptPuller
 
   def self.removal_bit
     lock.synchronize do
-      delta = SalesReceiptBit.joins(:sales_receipt_ref).where(
+      delta = SalesReceiptBit.where(
 	%Q{
-	  sales_receipt_refs.edit_sequence IS NOT NULL
-	  AND sales_receipt_bits.operation = ?
+	  sales_receipt_bits.operation = ?
 	  AND sales_receipt_bits.status = ?
 	  AND NOT EXISTS (
 	    SELECT 'x' FROM sales_receipt_bits b
 	    WHERE b.status = ?
-	    AND b.sales_receipt_ref_id = sales_receipt_refs.id
+	    AND b.sales_receipt_ref_id = sales_receipt_bits.sales_receipt_ref_id
 	  )
 	}.squish, 'del', 'wait', 'work'
-      ).order('sales_receipt_bits.id').readonly(false).first
+      ).order('sales_receipt_bits.id').first
       delta.update_attributes(status: 'work') if delta
       delta
     end
@@ -27,13 +26,17 @@ class SalesReceiptPuller
 
   def self.creation_bit
     lock.synchronize do
-      delta = SalesReceiptBit.joins(:sales_receipt_ref).where(
+      delta = SalesReceiptBit.where(
 	%Q{
-	  sales_receipt_refs.edit_sequence IS NULL AND
-	  sales_receipt_bits.operation = ? AND
-	  sales_receipt_bits.status = ?
-	}.squish, 'add', 'wait'
-      ).order('sales_receipt_bits.id').readonly(false).first
+	  sales_receipt_bits.operation = ?
+	  AND sales_receipt_bits.status = ?
+	  AND NOT EXISTS (
+	    SELECT 'x' FROM sales_receipt_bits b
+	    WHERE b.status = ?
+	    AND b.sales_receipt_ref_id = sales_receipt_bits.sales_receipt_ref_id
+	  )
+	}.squish, 'add', 'wait', 'work'
+      ).order('sales_receipt_bits.id').first
       delta.update_attributes(status: 'work') if delta
       delta
     end
