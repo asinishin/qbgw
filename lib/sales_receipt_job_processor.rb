@@ -16,7 +16,7 @@ class SalesReceiptJobProcessor
 
       if dels.size > 0
 	request = [{ 
-	  :xml_attributes =>  { "onError" => "stopOnError" }, 
+	  :xml_attributes => { "onError" => "stopOnError" }, 
 	  :txn_del_rq => dels.map do |delta|
 	    {
 	      :xml_attributes => { "requestID" => delta.id },
@@ -105,7 +105,7 @@ class SalesReceiptJobProcessor
       )
     end
     if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'add'
-      sales_receipt_ref.update_attribute(:qb_id, r['sales_receipt_ret']['list_id'])
+      sales_receipt_ref.update_attribute(:qb_id, r['sales_receipt_ret']['txn_id'])
     end
     if r['xml_attributes']['statusCode'] != '0'
       Rails.logger.info "Error: Quickbooks returned an error ==>"
