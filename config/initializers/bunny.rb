@@ -38,6 +38,7 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
       sales_queue = q_channel.queue("sales", :durable => true, :auto_delete => false)
 
       sales_queue.subscribe do |delivery_info, metadata, payload|
+	Rails.logger.info "Here we are 1 ==> #{ payload.inspect }"
 	sales_receipt = SalesReceiptBeef.decode(payload)
 	Rails.logger.info "Sales receipt pushed ==> #{ sales_receipt.operation }"
 	if sales_receipt.operation == 'add'
