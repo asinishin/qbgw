@@ -2,12 +2,7 @@ class SalesReceiptPusher
 
   def self.add_receipt(sales_receipt)
     sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
-    if sales_receipt_ref
-      if sales_receipt_ref.qb_id
-	Rails.logger.info "Add Error: sales receipt already exists ==>#{ sales_receipt.inspect }"
-        return
-      end
-    else
+    unless sales_receipt_ref
       sales_receipt_ref = SalesReceiptRef.new(sat_id: sales_receipt.sat_id)
       sales_receipt_ref.save!
     end
