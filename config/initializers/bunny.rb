@@ -35,6 +35,18 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
 	end
       end
 
+      sales_queue = q_channel.queue("sales", :durable => true, :auto_delete => false)
+
+      sales_queue.subscribe do |delivery_info, metadata, payload|
+	sales_receipt = SalesReceiptBeef.decode(payload)
+	Rails.logger.info "Sales receipt pushed ==> #{ sales_receipt.operation }"
+	if sales_receipt.operation == 'add'
+	  SalesReceiptPusher.add_receipt(sales_receipt)
+	else # delete operation
+	  SalesReceiptPusher.delete_receipt(sales_receipt)
+	end
+      end
+
       $q_tick = 0
     end
   end
