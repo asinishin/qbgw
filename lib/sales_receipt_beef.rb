@@ -18,6 +18,6 @@ class SalesReceiptBeef
   required :ref_number,  :string, 4
   required :txn_date,    :string, 5
 
-  repeated :lines, SalesReceiptLineBeef, 6
+  repeated :lines, SalesReceiptLineBeef, 6, :packed => true
 
 end
