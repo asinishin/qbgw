@@ -244,7 +244,7 @@ class JobProcessor
       r['item_service_mod_rs'].each{ |item| JobProcessor::process_items_response_item item }
     # Or one item
     elsif r['item_service_mod_rs']
-      JobProcessor::process_response_item r['item_service_mod_rs']
+      JobProcessor::process_items_response_item r['item_service_mod_rs']
     end
 
     # ItemServiceAddRs array case
@@ -252,7 +252,7 @@ class JobProcessor
       r['item_service_add_rs'].each{ |item| JobProcessor::process_items_response_item item }
     # Or one item
     elsif r['item_service_add_rs']
-      JobProcessor::process_response_item r['item_service_add_rs']
+      JobProcessor::process_items_response_item r['item_service_add_rs']
     end
   end
 
@@ -291,18 +291,18 @@ class JobProcessor
   def self.process_customers_response(r)
     # CustomerModRs array case
     if r['customer_mod_rs'].respond_to?(:to_ary)
-      r['customer_mod_rs'].each{ |item| JobProcessor::process_response_item item }
+      r['customer_mod_rs'].each{ |item| JobProcessor::process_customers_response_item item }
     # Or one item
     elsif r['customer_mod_rs']
-      JobProcessor::process_response_item r['customer_mod_rs']
+      JobProcessor::process_customers_response_item r['customer_mod_rs']
     end
 
     # CustomerAddRs array case
     if r['customer_add_rs'].respond_to?(:to_ary)
-      r['customer_add_rs'].each{ |item| JobProcessor::process_response_item item }
+      r['customer_add_rs'].each{ |item| JobProcessor::process_customers_response_item item }
     # Or one item
     elsif r['customer_add_rs']
-      JobProcessor::process_response_item r['customer_add_rs']
+      JobProcessor::process_customers_response_item r['customer_add_rs']
     end
   end
 
@@ -347,7 +347,7 @@ class JobProcessor
       r['txn_del_rs'].each{ |item| JobProcessor::process_sales_response_item item }
     # Or one item
     elsif r['txn_del_rs']
-      JobProcessor::process_response_item r['txn_del_rs']
+      JobProcessor::process_sales_response_item r['txn_del_rs']
     end
 
     # SalesReceiptAddRs array case
@@ -355,7 +355,7 @@ class JobProcessor
       r['sales_receipt_add_rs'].each{ |item| JobProcessor::process_sales_response_item item }
     # Or one item
     elsif r['sales_receipt_add_rs']
-      JobProcessor::process_response_item r['sales_receipt_add_rs']
+      JobProcessor::process_sales_response_item r['sales_receipt_add_rs']
     end
   end
 
