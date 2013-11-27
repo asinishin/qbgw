@@ -1,6 +1,4 @@
-require 'customer_job_processor'
-require 'item_service_job_processor'
-require 'sales_receipt_job_processor'
+require 'job_processor'
 
 QBWC.configure do |c|
   
@@ -42,6 +40,4 @@ QBWC.configure do |c|
   
 end
 
-CustomerJobProcessor::start
-ItemServiceJobProcessor::start
-SalesReceiptJobProcessor::start
+JobProcessor::start

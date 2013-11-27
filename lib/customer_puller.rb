@@ -6,34 +6,9 @@ class CustomerPuller
     @@lock ||= Monitor.new
   end
 
-  def self.modification_bit
+  def self.next_bit
     lock.synchronize do
-      delta = CustomerBit.joins(:customer_ref).where(
-	%Q{
-	  customer_refs.edit_sequence IS NOT NULL
-	  AND customer_bits.operation = ?
-	  AND customer_bits.status = ?
-	  AND NOT EXISTS (
-	    SELECT 'x' FROM customer_bits b
-	    WHERE b.status = ?
-	    AND b.customer_ref_id = customer_refs.id
-	  )
-	}.squish, 'upd', 'wait', 'work'
-      ).order('customer_bits.id').readonly(false).first
-      delta.update_attributes(status: 'work') if delta
-      delta
-    end
-  end
-
-  def self.creation_bit
-    lock.synchronize do
-      delta = CustomerBit.joins(:customer_ref).where(
-	%Q{
-	  customer_refs.edit_sequence IS NULL AND
-	  customer_bits.operation = ? AND
-	  customer_bits.status = ?
-	}.squish, 'add', 'wait'
-      ).order('customer_bits.id').readonly(false).first
+      delta = CustomerPuller::pull_next_bit
       delta.update_attributes(status: 'work') if delta
       delta
     end
@@ -54,5 +29,20 @@ class CustomerPuller
       delta
     end
   end
+ 
+protected
 
+  def self.pull_next_bit
+    delta = CustomerBit.where(
+      %Q{
+	customer_bits.status = ?
+	AND NOT EXISTS (
+	  SELECT 'x' FROM customer_bits b
+	  WHERE b.status = ?
+	  AND b.customer_ref_id = customer_bits.customer_ref_id
+	)
+      }.squish, 'wait', 'work'
+    ).order('customer_bits.id').first
+    delta
+  end
 end
