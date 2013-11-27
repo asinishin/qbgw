@@ -254,6 +254,11 @@ class JobProcessor
     elsif r['item_service_add_rs']
       JobProcessor::process_items_response_item r['item_service_add_rs']
     end
+
+    # Single request case
+    if r['item_service_ret'] && r['xml_attributes']['requestID']
+      JobProcessor::process_items_response_item r
+    end
   end
 
   def self.process_customers_response_item(r)
@@ -303,6 +308,11 @@ class JobProcessor
     # Or one item
     elsif r['customer_add_rs']
       JobProcessor::process_customers_response_item r['customer_add_rs']
+    end
+
+    # Single request case
+    if r['customer_ret'] && r['xml_attributes']['requestID']
+      JobProcessor::process_customers_response_item r
     end
   end
 
@@ -356,6 +366,11 @@ class JobProcessor
     # Or one item
     elsif r['sales_receipt_add_rs']
       JobProcessor::process_sales_response_item r['sales_receipt_add_rs']
+    end
+
+    # Single request case
+    if r['sales_receipt_ret'] && r['xml_attributes']['requestID']
+      JobProcessor::process_sales_response_item r
     end
   end
 
