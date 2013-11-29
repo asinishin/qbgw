@@ -2,19 +2,31 @@ class SalesReceiptPusher
 
   def self.add_receipt(sales_receipt)
     sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
-    unless sales_receipt_ref
+    if sales_receipt_ref
+      last_bit = SalesReceiptBit.where('sales_receipt_ref_id = ?', sales_receipt_ref.id),order('id').last
+      if last_bit && last_bit.operation == 'add'
+	Rails.logger.info "Creation Error: double add ==>#{ sales_receipt.inspect }"
+      else
+	SalesReceiptPusher::create_bit(sales_receipt, 'add', sales_receipt_ref.id)
+      end
+    else
       sales_receipt_ref = SalesReceiptRef.new(sat_id: sales_receipt.sat_id)
       sales_receipt_ref.save!
+      SalesReceiptPusher::create_bit(sales_receipt, 'add', sales_receipt_ref.id)
     end
-    SalesReceiptPusher::create_bit(sales_receipt, 'add', sales_receipt_ref.id)
   end 
 
   def self.delete_receipt(sales_receipt)
     sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
     if sales_receipt_ref
-      SalesReceiptPusher::create_bit(sales_receipt, 'del', sales_receipt_ref.id)
+      last_bit = SalesReceiptBit.where('sales_receipt_ref_id = ?', sales_receipt_ref.id),order('id').last
+      if last_bit && last_bit.operation == 'del'
+	Rails.logger.info "Deletion Error: double delete ==>#{ sales_receipt.inspect }"
+      else
+	SalesReceiptPusher::create_bit(sales_receipt, 'del', sales_receipt_ref.id)
+      end
     else
-      Rails.logger.info "Delete Error: sales receipt is not found ==>#{ sales_receipt.inspect }"
+      Rails.logger.info "Deletion Error: sales receipt is not found ==>#{ sales_receipt.inspect }"
     end
   end
 
