@@ -3,7 +3,7 @@ class SalesReceiptPusher
   def self.add_receipt(sales_receipt)
     sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
     if sales_receipt_ref
-      last_bit = SalesReceiptBit.where('sales_receipt_ref_id = ?', sales_receipt_ref.id),order('id').last
+      last_bit = SalesReceiptBit.where('sales_receipt_ref_id = ?', sales_receipt_ref.id).order('id').last
       if last_bit && last_bit.operation == 'add'
 	Rails.logger.info "Creation Error: double add ==>#{ sales_receipt.inspect }"
       else
@@ -19,7 +19,7 @@ class SalesReceiptPusher
   def self.delete_receipt(sales_receipt)
     sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
     if sales_receipt_ref
-      last_bit = SalesReceiptBit.where('sales_receipt_ref_id = ?', sales_receipt_ref.id),order('id').last
+      last_bit = SalesReceiptBit.where('sales_receipt_ref_id = ?', sales_receipt_ref.id).order('id').last
       if last_bit && last_bit.operation == 'del'
 	Rails.logger.info "Deletion Error: double delete ==>#{ sales_receipt.inspect }"
       else
