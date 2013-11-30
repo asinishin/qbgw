@@ -7,6 +7,7 @@ gem 'quickbooks_api', :git => 'git://github.com/asinishin/quickbooks_api.git'
 gem 'qbwc',           :git => 'git://github.com/asinishin/qbwc.git'
 gem "bunny"
 gem "beefcake"
+gem 'delayed_job_active_record'
 
 group :test, :development do
   gem "rspec-rails", "~> 2.4"
