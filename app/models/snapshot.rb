@@ -49,11 +49,14 @@ class Snapshot < ActiveRecord::Base
     @@lock ||= Monitor.new
   end
 
-  def self.start
+  def self.start(date_from, date_to)
     lock.synchronize do
       curr = Snapshot.order('id').last
       unless curr && curr.status != 'done'
-        curr = Snapshot.create
+        curr = Snapshot.create(
+	  date_from: date_from,
+	  date_to:   date_to
+	)
       end
       curr
     end
