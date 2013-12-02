@@ -1,7 +1,7 @@
 class QbIterator
 
   def self.iterator_id
-    @@iterator_id
+    @@iterator_id ||= nil
   end
  
   def self.iterator_id=(uid)
@@ -22,6 +22,14 @@ class QbIterator
 
   def self.request_id=(new_id)
     @@request_id = 1
+  end
+
+  def self.busy?
+    @@busy ||= false
+  end
+
+  def self.busy=(is_busy)
+    @@busy = is_busy
   end
 
 end

@@ -23,33 +23,27 @@ class JobProcessor
   def self.qb_tick_tk
     case Snapshot.current_status
     when :start
-      r = build_select_items_request(true)
-      if Snapshot.move_to(:reading_items)
-	JobProcessor.wrap_request(r)
-      else
-	JobProcessor.error_tk("QB Tick Error, cannot move from :start to :reading_items")
-        nil
-      end
+      Snapshot.move_to(:reading_items)
+      JobProcessor.qb_tick_tk
     when :reading_items
-      JobProcessor.wrap_request(build_select_items_request(false))
+      JobProcessor.wrap_request(build_select_items_request)
     when :sending_items
-      request = build_items_request
+      request = JobProcessor.build_items_request
 
       if request.size == 0
-        JobProcessor.sending_items_end_tk
+        Snapshot.move_to(:reading_customers)
+	JobProcessor.qb_tick_tk
       else
 	JobProcessor.wrap_request(request)
       end
     when :reading_customers
-      # Here is response proc still working
-      # nil
-      # Or I request next portion?
-      # next
+      JobProcessor.wrap_request(build_select_customers_request)
     when :sending_customers
-      request = build_customers_request
+      request = JobProcessor.build_customers_request
 
       if request.size == 0
-        JobProcessor.sending_customers_end_tk
+        Snapshot.move_to(:reading_sales)
+	JobProcessor.qb_tick_tk
       else
 	JobProcessor.wrap_request(request)
       end
@@ -59,7 +53,7 @@ class JobProcessor
       # Or I request next portion?
       # next
     when :sending_sales
-      request = build_sales_request
+      request = JobProcessor.build_sales_request
 
       if request.size == 0
         JobProcessor.sending_sales_end_tk
@@ -94,23 +88,38 @@ class JobProcessor
 	  snapshot_id: curr.id
 	)
       end
+
+      QbIterator.busy = false
+
       if QbIterator.remaining_count == 0
-        reading_items_end_tk
+        JobProcessor.reading_items_end_tk
       end
     when :sending_items
       if r['item_service_ret'] || r['item_service_mod_rs'] || r['item_service_add_rs']
-	process_items_response(r)
+	JobProcessor.process_items_response(r)
       else
 	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
       end
     when :reading_customers
-      # Here is response proc still working
-      # nil
-      # Or I request next portion?
-      # next
+      QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
+      curr = Snapshot.current
+      r['customer_ret'].each do |cs| 
+	QbCustomer.create(
+	  list_id:     cs['list_id'],
+	  first_name:  cs['first_name'],
+	  last_name:   cs['last_name'],
+	  snapshot_id: curr.id
+	)
+      end
+
+      QbIterator.busy = false
+
+      if QbIterator.remaining_count == 0
+        JobProcessor.reading_customers_end_tk
+      end
     when :sending_customers
       if r['customer_ret'] || r['customer_mod_rs'] || r['customer_add_rs']
-	process_customers_response(r)
+	JobProcessor.process_customers_response(r)
       else
 	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
       end
@@ -121,7 +130,7 @@ class JobProcessor
       # next
     when :sending_sales
       if r['sales_receipt_ret'] || r['sales_receipt_mod_rs'] || r['sales_receipt_add_rs']
-        process_sales_response(r)
+        JobProcessor.process_sales_response(r)
       else
 	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
       end
@@ -137,33 +146,20 @@ class JobProcessor
   def self.reading_items_end_tk
     case Snapshot.current_status
     when :reading_items
+      QbIterator.iterator_id = nil
 
       # Prepare Delta Queue for Items
 
-      #Snapshot.move_to(:sending_items)
-      Snapshot.move_to(:done)
-      JobProcessor.qb_tick_tk
+      Snapshot.move_to(:sending_items)
     else
       JobProcessor.error_tk("QB reading Items, unexpected status: #{ Snapshot.current_status.to_s }")
-    end
-  end
-
-  def self.sending_items_end_tk
-    case Snapshot.current_status
-    when :sending_items
-
-      # r = Build select customers request
-
-      Snapshot.move_to(:reading_customers)
-      JobProcessor.qb_tick_tk
-    else
-      JobProcessor.error_tk("QB sending Items, unexpected status: #{ Snapshot.current_status.to_s }")
     end
   end
 
   def self.reading_customers_end_tk
     case Snapshot.current_status
     when :reading_customers
+      QbIterator.iterator_id = nil
 
       # Prepare Delta Queue for Customers
 
@@ -171,19 +167,6 @@ class JobProcessor
       JobProcessor.qb_tick_tk
     else
       JobProcessor.error_tk("QB reading Customers, unexpected status: #{ Snapshot.current_status.to_s }")
-    end
-  end
-
-  def self.sending_customers_end_tk
-    case Snapshot.current_status
-    when :sending_customers
-
-      # r = Build select sales request
-
-      Snapshot.move_to(:reading_sales)
-      JobProcessor.qb_tick_tk
-    else
-      JobProcessor.error_tk("QB sending Customers, unexpected status: #{ Snapshot.current_status.to_s }")
     end
   end
 
@@ -227,20 +210,46 @@ class JobProcessor
     [r]
   end
 
-  def self.build_select_items_request(start)
-    return nil if QbIterator.remaining_count == 0 && !start
+  def self.iterator_not_ready?
+    ObIterator.busy? || (QbIterator.iterator_id && QbIterator.remaining_count == 0)
+  end
+
+  def self.prepare_iterator
+    ObIterator.busy = true
 
     attrs = {
       "requestID" => QbIterator.request_id,
-      "iterator"  => start ? "Start" : "Continue"
+      "iterator"  => QbIterator.iterator_id.nil? ? "Start" : "Continue"
     }
-    unless start
+    unless QbIterator.iterator_id.nil? # Start iterations?
       attrs.merge!(
         "iteratorID" => QbIterator.iterator_id
       )
     end
+    attrs
+  end
+
+  def self.build_select_items_request
+    return nil if JobProcessor.iterator_not_ready?
+
+    attrs = JobProcessor.prepare_iterator
+
     {
       :item_service_query_rq => {
+	:xml_attributes => attrs,
+	:max_returned => 20,
+	:owner_id => 0
+      }
+    }
+  end
+
+  def self.build_select_customers_request
+    return nil if JobProcessor.iterator_not_ready?
+
+    attrs = JobProcessor.prepare_iterator
+
+    {
+      :customer_query_rq => {
 	:xml_attributes => attrs,
 	:max_returned => 20,
 	:owner_id => 0
