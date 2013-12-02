@@ -179,7 +179,6 @@ class JobProcessor
       # Prepare Delta Queue for Customers
 
       Snapshot.move_to(:sending_customers)
-      JobProcessor.qb_tick_tk
     else
       JobProcessor.error_tk("QB reading Customers, unexpected status: #{ Snapshot.current_status.to_s }")
     end
@@ -192,7 +191,6 @@ class JobProcessor
       # Prepare Delta Queue for Sales
 
       Snapshot.move_to(:sending_sales)
-      JobProcessor.qb_tick_tk
     else
       JobProcessor.error_tk("QB reading Sales Receipts, unexpected status: #{ Snapshot.current_status.to_s }")
     end
