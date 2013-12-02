@@ -80,11 +80,21 @@ class JobProcessor
     when :reading_items
       QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
       curr = Snapshot.current
-      r['item_service_ret'].each do |item| 
+
+      if r['item_service_ret'] && r['item_service_ret'].respond_to?(:to_ary) 
+	r['item_service_ret'].each do |item| 
+	  QbItemService.create(
+	    list_id:     item['list_id'],
+	    name:        item['name'],
+	    account_ref: item['sales_or_purchase']['account_ref']['full_name'],
+	    snapshot_id: curr.id
+	  )
+	end
+      elsif r['item_service_ret']
 	QbItemService.create(
-	  list_id:     item['list_id'],
-	  name:        item['name'],
-	  account_ref: item['sales_or_purchase']['account_ref']['full_name'],
+	  list_id:     r['item_service_ret']['list_id'],
+	  name:        r['item_service_ret']['name'],
+	  account_ref: r['item_service_ret']['sales_or_purchase']['account_ref']['full_name'],
 	  snapshot_id: curr.id
 	)
       end
@@ -103,11 +113,21 @@ class JobProcessor
     when :reading_customers
       QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
       curr = Snapshot.current
-      r['customer_ret'].each do |cs| 
+
+      if r['customer_ret'] && r['customer_ret'].respond_to?(:to_ary) 
+	r['customer_ret'].each do |cs| 
+	  QbCustomer.create(
+	    list_id:     cs['list_id'],
+	    first_name:  cs['first_name'],
+	    last_name:   cs['last_name'],
+	    snapshot_id: curr.id
+	  )
+	end
+      elsif r['customer_ret']
 	QbCustomer.create(
-	  list_id:     cs['list_id'],
-	  first_name:  cs['first_name'],
-	  last_name:   cs['last_name'],
+	  list_id:     r['customer_ret']['list_id'],
+	  first_name:  r['customer_ret']['first_name'],
+	  last_name:   r['customer_ret']['last_name'],
 	  snapshot_id: curr.id
 	)
       end
