@@ -48,10 +48,7 @@ class JobProcessor
 	JobProcessor.wrap_request(request)
       end
     when :reading_sales
-      # Here is response proc still working
-      # nil
-      # Or I request next portion?
-      # next
+      JobProcessor.wrap_request(build_select_sales_request)
     when :sending_sales
       request = JobProcessor.build_sales_request
 
@@ -273,6 +270,19 @@ class JobProcessor
 	:xml_attributes => attrs,
 	:max_returned => 20,
 	:owner_id => 0
+      }
+    }
+  end
+
+  def self.build_select_sales_request
+    return nil if JobProcessor.iterator_not_ready?
+
+    attrs = JobProcessor.prepare_iterator
+
+    {
+      :sales_receipt_query_rq => {
+	:xml_attributes => attrs,
+	:max_returned => 20
       }
     }
   end
