@@ -24,8 +24,12 @@ class JobProcessor
     case Snapshot.current_status
     when :start
       r = build_select_items_request(true)
-      Snapshot.move_to(:reading_items)
-      JobProcessor.wrap_request(r)
+      if Snapshot.move_to(:reading_items)
+	JobProcessor.wrap_request(r)
+      else
+	JobProcessor.error_tk("QB Tick Error, cannot move from :start to :reading_items")
+        nil
+      end
     when :reading_items
       JobProcessor.wrap_request(build_select_items_request(false))
     when :sending_items

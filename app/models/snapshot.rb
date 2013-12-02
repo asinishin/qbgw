@@ -4,45 +4,39 @@ class Snapshot < ActiveRecord::Base
   attr_accessible :status, :date_from, :date_to
 
   MOVES = {
-    start: {
-      qb_tick:               :reading_items
-    },
-    reading_items: {
-      qb_tick:               :reading_items,
-      qb_response:           :reading_items,
-      reading_items_end:     :sending_items,
-      error:                 :done
-    },
-    sending_items: {
-      qb_tick:               :sending_items,
-      qb_response:           :sending_items,
-      sending_items_end:     :reading_customers,
-      error:                 :done
-    },
-    reading_customers: {
-      qb_tick:               :reading_customers,
-      qb_response:           :reading_customers,
-      reading_customers_end: :sending_customers,
-      error:                 :done
-    },
-    sending_customers: {
-      qb_tick:               :sending_customers,
-      qb_response:           :sending_customers,
-      sending_customers_end: :reading_sales,
-      error:                 :done
-    },
-    reading_sales: {
-      qb_tick:               :reading_sales,
-      qb_response:           :reading_sales,
-      reading_sales_end:     :sending_sales,
-      error:                 :done
-    },
-    sending_sales: {
-      qb_tick:               :reading_sales,
-      qb_response:           :reading_sales,
-      sending_sales_end:     :done,
-      error:                 :done
-    }
+    start: [ 
+      :reading_items,
+      :done
+    ],
+    reading_items: [
+      :reading_items,
+      :sending_items,
+      :done
+    ],
+    sending_items: [ 
+      :sending_items,
+      :reading_customers,
+      :done
+    ],
+    reading_customers: [
+      :reading_customers,
+      :sending_customers,
+      :done
+    ],
+    sending_customers: [
+      :sending_customers,
+      :reading_sales,
+      :done
+    ],
+    reading_sales: [
+      :reading_sales,
+      :sending_sales,
+      :done
+    ],
+    sending_sales: [
+      :reading_sales,
+      :done
+    ]
   }
 
   def self.lock
@@ -78,16 +72,14 @@ class Snapshot < ActiveRecord::Base
   def self.move_to(st)
     lock.synchronize do
       curr = Snapshot.order('id').last
-      return nil unless curr
+      return false unless curr
 
       curr_moves = MOVES[curr.status.to_sym]
-      return nil unless curr_moves
+      return false unless curr_moves
 
-      move = curr_moves[st]
-      return nil unless move
+      return false unless curr_moves.find(st)
 
       curr.update_attributes(status: move.to_s)
-      curr.status.to_sym
     end
   end
 
