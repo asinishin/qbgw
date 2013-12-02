@@ -84,8 +84,19 @@ class JobProcessor
 
     case Snapshot.current_status
     when :reading_items
-      Rails.logger.info "Here we are reading items ==>"
-      Rails.logger.info r.inspect
+      QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
+      curr = Snapshot.current
+      r['item_service_ret'].each do |item| 
+	QbItemService.create(
+	  list_id:     item['list_id'],
+	  name:        item['name'],
+	  account_ref: item['sales_or_purchase']['account_ref']['full_name'],
+	  snapshot_id: curr.id
+	)
+      end
+      if QbIterator.remaining_count == 0
+        reading_items_end_tk
+      end
     when :sending_items
       if r['item_service_ret'] || r['item_service_mod_rs'] || r['item_service_add_rs']
 	process_items_response(r)
@@ -129,7 +140,8 @@ class JobProcessor
 
       # Prepare Delta Queue for Items
 
-      Snapshot.move_to(:sending_items)
+      #Snapshot.move_to(:sending_items)
+      Snapshot.move_to(:done)
       JobProcessor.qb_tick_tk
     else
       JobProcessor.error_tk("QB reading Items, unexpected status: #{ Snapshot.current_status.to_s }")
