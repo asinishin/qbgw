@@ -277,6 +277,8 @@ class JobProcessor
   def self.build_select_sales_request
     return nil if JobProcessor.iterator_not_ready?
 
+    Rails.logger.info "Here we are ever ==>"
+
     attrs = JobProcessor.prepare_iterator
 
     {
