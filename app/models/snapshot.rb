@@ -79,7 +79,7 @@ class Snapshot < ActiveRecord::Base
 
       return false unless curr_moves.find(st)
 
-      curr.update_attributes(status: move.to_s)
+      curr.update_attributes(status: st.to_s)
     end
   end
 
