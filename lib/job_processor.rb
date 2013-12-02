@@ -118,16 +118,14 @@ class JobProcessor
 	r['customer_ret'].each do |cs| 
 	  QbCustomer.create(
 	    list_id:     cs['list_id'],
-	    first_name:  cs['first_name'],
-	    last_name:   cs['last_name'],
+	    name:        cs['name'],
 	    snapshot_id: curr.id
 	  )
 	end
       elsif r['customer_ret']
 	QbCustomer.create(
 	  list_id:     r['customer_ret']['list_id'],
-	  first_name:  r['customer_ret']['first_name'],
-	  last_name:   r['customer_ret']['last_name'],
+	  name:        r['customer_ret']['name'],
 	  snapshot_id: curr.id
 	)
       end
