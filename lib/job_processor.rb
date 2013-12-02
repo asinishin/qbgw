@@ -206,6 +206,8 @@ class JobProcessor
   end
 
   def self.wrap_request(r)
+    return nil unless r
+
     r.merge!({ :xml_attributes => { "onError" => "stopOnError" } })
     [r]
   end
