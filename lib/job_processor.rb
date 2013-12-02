@@ -211,11 +211,11 @@ class JobProcessor
   end
 
   def self.iterator_not_ready?
-    ObIterator.busy? || (QbIterator.iterator_id && QbIterator.remaining_count == 0)
+    QbIterator.busy? || (QbIterator.iterator_id && QbIterator.remaining_count == 0)
   end
 
   def self.prepare_iterator
-    ObIterator.busy = true
+    QbIterator.busy = true
 
     attrs = {
       "requestID" => QbIterator.request_id,
