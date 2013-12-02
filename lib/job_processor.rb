@@ -1,46 +1,235 @@
 require 'item_service_puller'
 require 'customer_puller'
 require 'sales_receipt_puller'
+require 'qb_iterator'
 
 class JobProcessor
 
   def self.start
     QBWC.add_job(:qb_exchange) do
-      JobProcessor::process
+      JobProcessor.qb_tick_tk
     end
 
     QBWC.jobs[:qb_exchange].set_response_proc do |r|
       Rails.logger.info "==> Response Callback"
       Rails.logger.info r.inspect
 
-      JobProcessor::process_response r
+      JobProcessor.qb_response_tk r
 
     end
   end
 
-  def self.process
-    request = build_items_request
-    request.merge!(build_customers_request)
-    
-    # If we don't have customers and items then we can process sales
-    if request.size == 0
+  # Returns [Request] or nil
+  def self.qb_tick_tk
+    case Snapshot.current_status
+    when :start
+      r = build_select_items_request(true)
+      Snapshot.move_to(:reading_items)
+      JobProcessor.wrap_request(r)
+    when :reading_items
+      JobProcessor.wrap_request(build_select_items_request(false))
+    when :sending_items
+      request = build_items_request
+
+      if request.size == 0
+        JobProcessor.sending_items_end_tk
+      else
+	JobProcessor.wrap_request(request)
+      end
+    when :reading_customers
+      # Here is response proc still working
+      # nil
+      # Or I request next portion?
+      # next
+    when :sending_customers
+      request = build_customers_request
+
+      if request.size == 0
+        JobProcessor.sending_customers_end_tk
+      else
+	JobProcessor.wrap_request(request)
+      end
+    when :reading_sales
+      # Here is response proc still working
+      # nil
+      # Or I request next portion?
+      # next
+    when :sending_sales
       request = build_sales_request
-    end
 
-    if request.size != 0
-      request.merge!({ :xml_attributes => { "onError" => "stopOnError" } })
-
-      [request]
-
-    else
-
+      if request.size == 0
+        JobProcessor.sending_sales_end_tk
+      else
+	JobProcessor.wrap_request(request)
+      end
+    when :done
       nil
-
+    else
+      JobProcessor.error_tk("QB Tick Error, unexpected status: #{ Snapshot.current_status.to_s }")
+      nil
     end
   rescue Exception => e
     Rails.logger.info "Error ==>"
     Rails.logger.info(e.class.name + ':' + e.to_s)
     Rails.logger.info e.backtrace.join("\n")
+  end
+
+  def self.qb_response_tk(r)
+    # Unwrap response message
+    r = r['qbxml_msgs_rs'] if r['qbxml_msgs_rs']
+
+    case Snapshot.current_status
+    when :reading_items
+      Rails.logger.info "Here we are reading items ==>"
+      Rails.logger.info r.inspect
+    when :sending_items
+      if r['item_service_ret'] || r['item_service_mod_rs'] || r['item_service_add_rs']
+	process_items_response(r)
+      else
+	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
+      end
+    when :reading_customers
+      # Here is response proc still working
+      # nil
+      # Or I request next portion?
+      # next
+    when :sending_customers
+      if r['customer_ret'] || r['customer_mod_rs'] || r['customer_add_rs']
+	process_customers_response(r)
+      else
+	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
+      end
+    when :reading_sales
+      # Here is response proc still working
+      # nil
+      # Or I request next portion?
+      # next
+    when :sending_sales
+      if r['sales_receipt_ret'] || r['sales_receipt_mod_rs'] || r['sales_receipt_add_rs']
+        process_sales_response(r)
+      else
+	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
+      end
+    else
+      JobProcessor.error_tk("QB Response, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  rescue Exception => e
+    Rails.logger.info "Error ==>"
+    Rails.logger.info(e.class.name + ':' + e.to_s)
+    Rails.logger.info e.backtrace.join("\n")
+  end
+
+  def self.reading_items_end_tk
+    case Snapshot.current_status
+    when :reading_items
+
+      # Prepare Delta Queue for Items
+
+      Snapshot.move_to(:sending_items)
+      JobProcessor.qb_tick_tk
+    else
+      JobProcessor.error_tk("QB reading Items, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  end
+
+  def self.sending_items_end_tk
+    case Snapshot.current_status
+    when :sending_items
+
+      # r = Build select customers request
+
+      Snapshot.move_to(:reading_customers)
+      JobProcessor.qb_tick_tk
+    else
+      JobProcessor.error_tk("QB sending Items, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  end
+
+  def self.reading_customers_end_tk
+    case Snapshot.current_status
+    when :reading_customers
+
+      # Prepare Delta Queue for Customers
+
+      Snapshot.move_to(:sending_customers)
+      JobProcessor.qb_tick_tk
+    else
+      JobProcessor.error_tk("QB reading Customers, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  end
+
+  def self.sending_customers_end_tk
+    case Snapshot.current_status
+    when :sending_customers
+
+      # r = Build select sales request
+
+      Snapshot.move_to(:reading_sales)
+      JobProcessor.qb_tick_tk
+    else
+      JobProcessor.error_tk("QB sending Customers, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  end
+
+  def self.reading_sales_end_tk
+    case Snapshot.current_status
+    when :reading_sales
+
+      # Prepare Delta Queue for Sales
+
+      Snapshot.move_to(:sending_sales)
+      JobProcessor.qb_tick_tk
+    else
+      JobProcessor.error_tk("QB reading Sales Receipts, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  end
+
+  def self.sending_sales_end_tk
+    case Snapshot.current_status
+    when :sending_sales
+
+      # Email notification
+
+      Snapshot.move_to(:done)
+      nil
+    else
+      JobProcessor.error_tk("QB sending Sales Receipts, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  end
+
+  def self.error_tk(err_msg)
+    Rails.logger.info(err_msg)
+    
+    # Email notification
+
+    Snapshot.move_to(:done)
+    nil
+  end
+
+  def self.wrap_request(r)
+    r.merge!({ :xml_attributes => { "onError" => "stopOnError" } })
+    [r]
+  end
+
+  def self.build_select_items_request(start)
+    return nil if QbIterator.remaining_count == 0 && !start
+
+    attrs = {
+      "requestID" => QbIterator.request_id,
+      "iterator"  => start ? "Start" : "Continue"
+    }
+    unless start
+      attrs.merge!(
+        "iteratorID" => QbIterator.iterator_id
+      )
+    end
+    {
+      :item_service_query_rq => {
+	:xml_attributes => attrs,
+	:max_returned => 20,
+	:owner_id => 0
+      }
+    }
   end
 
   def self.build_items_request
@@ -241,23 +430,23 @@ class JobProcessor
   def self.process_items_response(r)
     # ItemServiceModRs array case
     if r['item_service_mod_rs'].respond_to?(:to_ary)
-      r['item_service_mod_rs'].each{ |item| JobProcessor::process_items_response_item item }
+      r['item_service_mod_rs'].each{ |item| JobProcessor.process_items_response_item item }
     # Or one item
     elsif r['item_service_mod_rs']
-      JobProcessor::process_items_response_item r['item_service_mod_rs']
+      JobProcessor.process_items_response_item r['item_service_mod_rs']
     end
 
     # ItemServiceAddRs array case
     if r['item_service_add_rs'].respond_to?(:to_ary)
-      r['item_service_add_rs'].each{ |item| JobProcessor::process_items_response_item item }
+      r['item_service_add_rs'].each{ |item| JobProcessor.process_items_response_item item }
     # Or one item
     elsif r['item_service_add_rs']
-      JobProcessor::process_items_response_item r['item_service_add_rs']
+      JobProcessor.process_items_response_item r['item_service_add_rs']
     end
 
     # Single request case
     if r['item_service_ret'] && r['xml_attributes']['requestID']
-      JobProcessor::process_items_response_item r
+      JobProcessor.process_items_response_item r
     end
   end
 
@@ -296,23 +485,23 @@ class JobProcessor
   def self.process_customers_response(r)
     # CustomerModRs array case
     if r['customer_mod_rs'].respond_to?(:to_ary)
-      r['customer_mod_rs'].each{ |item| JobProcessor::process_customers_response_item item }
+      r['customer_mod_rs'].each{ |item| JobProcessor.process_customers_response_item item }
     # Or one item
     elsif r['customer_mod_rs']
-      JobProcessor::process_customers_response_item r['customer_mod_rs']
+      JobProcessor.process_customers_response_item r['customer_mod_rs']
     end
 
     # CustomerAddRs array case
     if r['customer_add_rs'].respond_to?(:to_ary)
-      r['customer_add_rs'].each{ |item| JobProcessor::process_customers_response_item item }
+      r['customer_add_rs'].each{ |item| JobProcessor.process_customers_response_item item }
     # Or one item
     elsif r['customer_add_rs']
-      JobProcessor::process_customers_response_item r['customer_add_rs']
+      JobProcessor.process_customers_response_item r['customer_add_rs']
     end
 
     # Single request case
     if r['customer_ret'] && r['xml_attributes']['requestID']
-      JobProcessor::process_customers_response_item r
+      JobProcessor.process_customers_response_item r
     end
   end
 
@@ -354,37 +543,24 @@ class JobProcessor
   def self.process_sales_response(r)
     # TxnDelRs array case 
     if r['txn_del_rs'].respond_to?(:to_ary)
-      r['txn_del_rs'].each{ |item| JobProcessor::process_sales_response_item item }
+      r['txn_del_rs'].each{ |item| JobProcessor.process_sales_response_item item }
     # Or one item
     elsif r['txn_del_rs']
-      JobProcessor::process_sales_response_item r['txn_del_rs']
+      JobProcessor.process_sales_response_item r['txn_del_rs']
     end
 
     # SalesReceiptAddRs array case
     if r['sales_receipt_add_rs'].respond_to?(:to_ary)
-      r['sales_receipt_add_rs'].each{ |item| JobProcessor::process_sales_response_item item }
+      r['sales_receipt_add_rs'].each{ |item| JobProcessor.process_sales_response_item item }
     # Or one item
     elsif r['sales_receipt_add_rs']
-      JobProcessor::process_sales_response_item r['sales_receipt_add_rs']
+      JobProcessor.process_sales_response_item r['sales_receipt_add_rs']
     end
 
     # Single request case
     if r['sales_receipt_ret'] && r['xml_attributes']['requestID']
-      JobProcessor::process_sales_response_item r
+      JobProcessor.process_sales_response_item r
     end
-  end
-
-  def self.process_response(r)
-    r = r['qbxml_msgs_rs'] if r['qbxml_msgs_rs']
-    
-    process_items_response(r)
-    process_customers_response(r)
-    process_sales_response(r)
-
-  rescue Exception => e
-    Rails.logger.info "Error ==>"
-    Rails.logger.info(e.class.name + ':' + e.to_s)
-    Rails.logger.info e.backtrace.join("\n")
   end
 
 end
