@@ -1,3 +1,4 @@
+require 'consumer'
 require 'customer_beef'
 require 'customer_pusher'
 require 'item_service_beef'
@@ -28,21 +29,7 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
       item_services_queue = q_channel.queue("item_services", :durable => true, :auto_delete => false)
 
       item_services_queue.subscribe do |delivery_info, metadata, payload|
-	item_service = ItemServiceBeef.decode(payload)
-	Rails.logger.info "Item service pushed ==> #{ item_service.operation }"
-	if item_service.operation == 'add'
-	  unless ItemServicePusher.add_item(item_service)
-            Rails.logger.info "StPackage Add Error: ==>#{ item_service.inspect }"
-	  end
-	elsif item_service.operation == 'upd'
-	  unless ItemServicePusher.modify_item(item_service)
-            Rails.logger.info "StPackage Upd Error: ==>#{ item_service.inspect }"
-	  end
-	elsif item_service.operation == 'dmp'
-	  unless ItemServicePusher.modify_item(item_service)
-	    ItemServicePusher.add_item(item_service)
-	  end
-	end
+        Consumer.proc_item_service(delivery_info, metadata, payload)
       end
 
       sales_queue = q_channel.queue("sales", :durable => true, :auto_delete => false)
