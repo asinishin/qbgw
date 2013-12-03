@@ -139,10 +139,36 @@ class JobProcessor
 	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
       end
     when :reading_sales
-      # Here is response proc still working
-      # nil
-      # Or I request next portion?
-      # next
+      QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
+      curr = Snapshot.current
+
+      if r['sales_receipt_ret'] && r['sales_receipt_ret'].respond_to?(:to_ary) 
+	r['sales_receipt_ret'].each do |rct| 
+	  JobProcessor.store_qb_receipt_lines(r,
+	    QbSalesReceipt.create(
+	      txn_id:      rct['txn_id'],
+	      ref_number:  rct['ref_number'],
+	      txn_date:    rct['txn_date'],
+	      snapshot_id: curr.id
+	    )
+	  )
+	end
+      elsif r['sales_receipt_ret']
+	JobProcessor.store_qb_receipt_lines(r,
+	  QbSalesReceipt.create(
+	    txn_id:      r['sales_receipt_ret']['txn_id'],
+	    ref_number:  r['sales_receipt_ret']['ref_number'],
+	    txn_date:    r['sales_receipt_ret']['txn_date'],
+	    snapshot_id: curr.id
+	  )
+	)
+      end
+
+      QbIterator.busy = false
+
+      if QbIterator.remaining_count == 0
+        JobProcessor.reading_sales_end_tk
+      end
     when :sending_sales
       if r['sales_receipt_ret'] || r['sales_receipt_mod_rs'] || r['sales_receipt_add_rs']
         JobProcessor.process_sales_response(r)
@@ -242,6 +268,30 @@ class JobProcessor
       )
     end
     attrs
+  end
+
+  def self.store_qb_receipt_lines(r, rct)
+    if r['sales_receipt_line_ret'] && r['sales_receipt_line_ret'].respond_to?(:to_ary) 
+      r['sales_receipt_ret'].each do |line| 
+	QbSalesReceiptLine.create(
+	  txn_line_id: line['txn_line_id'],
+	  item_ref:    line['item_ref'],
+	  class_ref:   line['class_ref'],
+	  quantity:    line['quantity'],
+	  amount:      line['amount'],
+	  qb_sales_receipt_id: rct.id
+	)
+      end
+    elsif r['sales_receipt_line_ret']
+      QbSalesReceiptLine.create(
+	txn_line_id: r['sales_receipt_ret']['txn_line_id'],
+	item_ref:    r['sales_receipt_ret']['item_ref'],
+	class_ref:   r['sales_receipt_ret']['class_ref'],
+	quantity:    r['sales_receipt_ret']['quantity'],
+	amount:      r['sales_receipt_ret']['amount'],
+	qb_sales_receipt_id: rct.id
+      )
+    end
   end
 
   def self.build_select_items_request
