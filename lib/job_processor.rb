@@ -275,8 +275,8 @@ class JobProcessor
       r['sales_receipt_line_ret'].each do |line| 
 	QbSalesReceiptLine.create(
 	  txn_line_id: line['txn_line_id'],
-	  item_ref:    line['item_ref'],
-	  class_ref:   line['class_ref'],
+	  item_ref:    line['item_ref']['list_id'],
+	  class_ref:   line['class_ref']['full_name'],
 	  quantity:    line['quantity'],
 	  amount:      line['amount'],
 	  qb_sales_receipt_id: qb_rct.id
@@ -285,8 +285,8 @@ class JobProcessor
     elsif r['sales_receipt_line_ret']
       QbSalesReceiptLine.create(
 	txn_line_id: r['sales_receipt_line_ret']['txn_line_id'],
-	item_ref:    r['sales_receipt_line_ret']['item_ref'],
-	class_ref:   r['sales_receipt_line_ret']['class_ref'],
+	item_ref:    r['sales_receipt_line_ret']['item_ref']['list_id'],
+	class_ref:   r['sales_receipt_line_ret']['class_ref']['full_name'],
 	quantity:    r['sales_receipt_line_ret']['quantity'],
 	amount:      r['sales_receipt_line_ret']['amount'],
 	qb_sales_receipt_id: qb_rct.id
