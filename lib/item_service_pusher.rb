@@ -13,7 +13,7 @@ class ItemServicePusher
   end 
 
   def self.modify_item(item)
-    package = ItemServiceRef.where('sat_id = ?', item.sat_id).first
+    package = StPackage.where('sat_id = ?', item.sat_id).first
     if package
       package.update_attributes(
         name:        item.name,
