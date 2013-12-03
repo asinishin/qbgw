@@ -144,7 +144,7 @@ class JobProcessor
 
       if r['sales_receipt_ret'] && r['sales_receipt_ret'].respond_to?(:to_ary) 
 	r['sales_receipt_ret'].each do |rct| 
-	  JobProcessor.store_qb_receipt_lines(r,
+	  JobProcessor.store_qb_receipt_lines(rct,
 	    QbSalesReceipt.create(
 	      txn_id:      rct['txn_id'],
 	      ref_number:  rct['ref_number'],
@@ -154,7 +154,7 @@ class JobProcessor
 	  )
 	end
       elsif r['sales_receipt_ret']
-	JobProcessor.store_qb_receipt_lines(r,
+	JobProcessor.store_qb_receipt_lines(r['sales_receipt_ret'],
 	  QbSalesReceipt.create(
 	    txn_id:      r['sales_receipt_ret']['txn_id'],
 	    ref_number:  r['sales_receipt_ret']['ref_number'],
@@ -270,7 +270,7 @@ class JobProcessor
     attrs
   end
 
-  def self.store_qb_receipt_lines(r, rct)
+  def self.store_qb_receipt_lines(r, qb_rct)
     if r['sales_receipt_line_ret'] && r['sales_receipt_line_ret'].respond_to?(:to_ary) 
       r['sales_receipt_ret'].each do |line| 
 	QbSalesReceiptLine.create(
@@ -279,7 +279,7 @@ class JobProcessor
 	  class_ref:   line['class_ref'],
 	  quantity:    line['quantity'],
 	  amount:      line['amount'],
-	  qb_sales_receipt_id: rct.id
+	  qb_sales_receipt_id: qb_rct.id
 	)
       end
     elsif r['sales_receipt_line_ret']
@@ -289,7 +289,7 @@ class JobProcessor
 	class_ref:   r['sales_receipt_ret']['class_ref'],
 	quantity:    r['sales_receipt_ret']['quantity'],
 	amount:      r['sales_receipt_ret']['amount'],
-	qb_sales_receipt_id: rct.id
+	qb_sales_receipt_id: qb_rct.id
       )
     end
   end
