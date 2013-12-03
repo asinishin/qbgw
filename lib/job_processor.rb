@@ -283,7 +283,7 @@ class JobProcessor
       :sales_receipt_query_rq => {
 	:xml_attributes => attrs,
 	:max_returned => 20,
-	:include_line_items" => 'True'
+	:include_line_items => 'True'
       }
     }
   end
