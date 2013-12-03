@@ -4,7 +4,6 @@ class ItemServicePusher
     if StPackage.where('sat_id = ?', item.sat_id).first
       false
     else
-      ItemServicePusher::create_bit(item, 'upd', item_service_ref.id)
       StPackage.create(
         name:        item.name,
         description: item.description,
