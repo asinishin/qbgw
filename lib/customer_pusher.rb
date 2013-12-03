@@ -1,28 +1,27 @@
 class CustomerPusher
 
   def self.add_customer(customer)
-    customer_ref = CustomerRef.new(sat_id: customer.sat_id)
-    customer_ref.save!
-    CustomerPusher::create_bit(customer, 'add', customer_ref.id)
+    if StUser.where('sat_id = ?', customer.sat_id).first
+      false
+    else
+      StUser.create(
+        first_name:  customer.first_name,
+        last_name:   customer.last_name,
+        sat_id:      customer.sat_id
+      )
+    end
   end 
 
   def self.modify_customer(customer)
-    customer_ref = CustomerRef.where('sat_id = ?', customer.sat_id).first
-    if customer_ref
-      CustomerPusher::create_bit(customer, 'upd', customer_ref.id)
+    user = StUser.where('sat_id = ?', customer.sat_id).first
+    if user
+      user.update_attributes(
+        first_name:  customer.first_name,
+        last_name:   customer.last_name
+      )
     else
-      Rails.logger.info "Update Error: customer is not found ==>#{ customer.inspect }"
+      false
     end
-  end
-
-  def self.create_bit(customer, operation, customer_ref_id)
-    customer_bit = CustomerBit.new(
-      operation:   operation,
-      first_name:  customer.first_name,      
-      last_name:   customer.last_name,
-      customer_ref_id: customer_ref_id
-    )
-    customer_bit.save!
   end
 
 end

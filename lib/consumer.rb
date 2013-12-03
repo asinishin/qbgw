@@ -22,4 +22,26 @@ class Consumer
     Rails.logger.info e.backtrace.join("\n")
   end
 
+  def self.proc_customer(delivery_info, metadata, payload)
+    customer = CustomerBeef.decode(payload)
+    Rails.logger.info "Customer pushed ==> #{ customer.operation }"
+    if customer.operation == 'add'
+      unless CustomerPusher.add_item(customer)
+	Rails.logger.info "StPackage Add Error: ==>#{ customer.inspect }"
+      end
+    elsif customer.operation == 'upd'
+      unless CustomerPusher.modify_item(customer)
+	Rails.logger.info "StPackage Upd Error: ==>#{ customer.inspect }"
+      end
+    elsif item_service.operation == 'dmp'
+      unless CustomerPusher.modify_item(customer)
+	CustomerPusher.add_item(customer)
+      end
+    end
+  rescue Exception => e
+    Rails.logger.info "Error ==>"
+    Rails.logger.info(e.class.name + ':' + e.to_s)
+    Rails.logger.info e.backtrace.join("\n")
+  end
+
 end

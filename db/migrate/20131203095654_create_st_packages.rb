@@ -5,6 +5,7 @@ class CreateStPackages < ActiveRecord::Migration
       t.string  :description
       t.integer :sat_id, null: false
       t.string  :qb_list_id
+      t.string  :account_ref, null: false
 
       t.timestamps
     end

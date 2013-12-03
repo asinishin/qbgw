@@ -7,7 +7,8 @@ class ItemServicePusher
       StPackage.create(
         name:        item.name,
         description: item.description,
-        sat_id:      item.sat_id
+        sat_id:      item.sat_id,
+	account_ref: item.account_ref
       )
     end
   end 
@@ -18,6 +19,7 @@ class ItemServicePusher
       package.update_attributes(
         name:        item.name,
         description: item.description,
+	account_ref: item.account_ref
       )
     else
       false

@@ -17,13 +17,7 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
       customers_queue = q_channel.queue("customers", :durable => true, :auto_delete => false)
 
       customers_queue.subscribe do |delivery_info, metadata, payload|
-	customer = CustomerBeef.decode(payload)
-	Rails.logger.info "Customer pushed ==> #{ customer.operation }"
-	if customer.operation == 'add'
-	  CustomerPusher.add_customer(customer)
-	else # update operation
-	  CustomerPusher.modify_customer(customer)
-	end
+        Consumer.proc_customer(delivery_info, metadata, payload)
       end
 
       item_services_queue = q_channel.queue("item_services", :durable => true, :auto_delete => false)
