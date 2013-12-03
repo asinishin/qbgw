@@ -31,9 +31,17 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
 	item_service = ItemServiceBeef.decode(payload)
 	Rails.logger.info "Item service pushed ==> #{ item_service.operation }"
 	if item_service.operation == 'add'
-	  ItemServicePusher.add_item(item_service)
-	else # update operation
-	  ItemServicePusher.modify_item(item_service)
+	  unless ItemServicePusher.add_item(item_service)
+            Rails.logger.info "StPackage Add Error: ==>#{ item_service.inspect }"
+	  end
+	elsif item_service.operation == 'upd'
+	  unless ItemServicePusher.modify_item(item_service)
+            Rails.logger.info "StPackage Upd Error: ==>#{ item_service.inspect }"
+	  end
+	elsif item_service.operation == 'dmp'
+	  unless ItemServicePusher.modify_item(item_service)
+	    ItemServicePusher.add_item(item_service)
+	  end
 	end
       end
 
