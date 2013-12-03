@@ -26,16 +26,16 @@ class Consumer
     customer = CustomerBeef.decode(payload)
     Rails.logger.info "Customer pushed ==> #{ customer.operation }"
     if customer.operation == 'add'
-      unless CustomerPusher.add_item(customer)
+      unless CustomerPusher.add_customer(customer)
 	Rails.logger.info "StPackage Add Error: ==>#{ customer.inspect }"
       end
     elsif customer.operation == 'upd'
-      unless CustomerPusher.modify_item(customer)
+      unless CustomerPusher.modify_customer(customer)
 	Rails.logger.info "StPackage Upd Error: ==>#{ customer.inspect }"
       end
     elsif item_service.operation == 'dmp'
-      unless CustomerPusher.modify_item(customer)
-	CustomerPusher.add_item(customer)
+      unless CustomerPusher.modify_customer(customer)
+	CustomerPusher.add_customer(customer)
       end
     end
   rescue Exception => e
