@@ -2,7 +2,7 @@ class Consumer
 
   def self.proc_item_service(delivery_info, metadata, payload)
     item_service = ItemServiceBeef.decode(payload)
-    Rails.logger.info "Item service pushed ==> #{ item_service.investigate }"
+    Rails.logger.info "Item service pushed ==> #{ item_service.inspect }"
     if item_service.operation == 'add'
       unless ItemServicePusher.add_item(item_service)
 	Rails.logger.info "StPackage Add Error: ==>#{ item_service.inspect }"
