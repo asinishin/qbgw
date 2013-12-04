@@ -1,3 +1,11 @@
+require 'customer_beef'
+require 'customer_pusher'
+require 'item_service_beef'
+require 'item_service_pusher'
+require 'sales_receipt_beef'
+require 'sales_receipt_pusher'
+require 'sales_receipt_line_pusher'
+
 class Consumer
 
   def self.proc_item_service(delivery_info, metadata, payload)
