@@ -1,56 +1,22 @@
 class SalesReceiptPusher
 
   def self.add_receipt(sales_receipt)
-    sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
-    if sales_receipt_ref
-      last_bit = SalesReceiptBit.where('sales_receipt_ref_id = ?', sales_receipt_ref.id).order('id').last
-      if last_bit && last_bit.operation == 'add'
-	Rails.logger.info "Creation Error: double add ==>#{ sales_receipt.inspect }"
-      else
-	SalesReceiptPusher::create_bit(sales_receipt, 'add', sales_receipt_ref.id)
-      end
+    if StPurchase.where('sat_id = ?', sales_receipt.sat_id).first
+      false
     else
-      sales_receipt_ref = SalesReceiptRef.new(sat_id: sales_receipt.sat_id)
-      sales_receipt_ref.save!
-      SalesReceiptPusher::create_bit(sales_receipt, 'add', sales_receipt_ref.id)
+      StPurchase.create(
+        sat_id:          sales_receipt.sat_id,
+	sat_customer_id: sales_receipt.customer_id,
+	ref_number:      sales_receipt.ref_number,
+	txn_date:        sales_receipt.txn_date
+      )
     end
   end 
 
   def self.delete_receipt(sales_receipt)
-    sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sales_receipt.sat_id).first
-    if sales_receipt_ref
-      last_bit = SalesReceiptBit.where('sales_receipt_ref_id = ?', sales_receipt_ref.id).order('id').last
-      if last_bit && last_bit.operation == 'del'
-	Rails.logger.info "Deletion Error: double delete ==>#{ sales_receipt.inspect }"
-      else
-	SalesReceiptPusher::create_bit(sales_receipt, 'del', sales_receipt_ref.id)
-      end
-    else
-      Rails.logger.info "Deletion Error: sales receipt is not found ==>#{ sales_receipt.inspect }"
-    end
-  end
-
-  def self.create_bit(sales_receipt, operation, sales_receipt_ref_id)
-    sales_receipt_bit = SalesReceiptBit.new(
-      operation:     operation,
-      customer_id:   sales_receipt.customer_id,
-      ref_number:    sales_receipt.ref_number,
-      txn_date:      sales_receipt.txn_date,
-      sales_receipt_ref_id: sales_receipt_ref_id
-    )
-    sales_receipt_bit.save!
-
-    if sales_receipt.lines
-      sales_receipt.lines.each do |line|
-        SalesReceiptLine.create(
-	  sales_receipt_bit_id: sales_receipt_bit.id,
-	  item_id:   line.item_id,
-	  quantity:  line.quantity,
-	  amount:    line.amount,
-	  class_ref: line.class_ref
-	)
-      end
-    end
+    purchase = StPurchase.where('sat_id = ?', sales_receipt.sat_id).first
+    purchase.destroy if purchase
+    purchase
   end
 
 end
