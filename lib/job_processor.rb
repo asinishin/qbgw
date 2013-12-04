@@ -359,21 +359,24 @@ class JobProcessor
 
 	  end
 	else
-	  bit = SalesReceiptBit.create(
-	    operation:   'add',
-	    customer_id: purchase.sat_customer_id,
-	    ref_number:  purchase.ref_number,
-	    txn_date:    purchase.txn_date,
-	    sales_receipt_ref_id: sales_receipt_ref.id
-	  )
-	  StPurchasePackage.where("sat_id = #{ purchase.sat_id }").each do |pp|
-	    SalesReceiptLine.create(
-	      item_id:   pp.sat_item_id,
-	      quantity:  pp.quantity,
-	      amount:    pp.amount,
-	      class_ref: pp.class_ref,
-	      sales_receipt_bit_id: bit.id
+	  purchase_packages = StPurchasePackage.where("sat_id = #{ purchase.sat_id }")
+	  unless purchase_packages.size == 0
+	    bit = SalesReceiptBit.create(
+	      operation:   'add',
+	      customer_id: purchase.sat_customer_id,
+	      ref_number:  purchase.ref_number,
+	      txn_date:    purchase.txn_date,
+	      sales_receipt_ref_id: sales_receipt_ref.id
 	    )
+	    purchase_packages.each do |pp|
+	      SalesReceiptLine.create(
+		item_id:   pp.sat_item_id,
+		quantity:  pp.quantity,
+		amount:    pp.amount,
+		class_ref: pp.class_ref,
+		sales_receipt_bit_id: bit.id
+	      )
+	    end
 	  end
 	end
       end

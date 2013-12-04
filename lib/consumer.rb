@@ -64,9 +64,7 @@ class Consumer
 	Rails.logger.info "StPurchase Del Error: ==>#{ sales_receipt.inspect }"
       end
     elsif sales_receipt.operation == 'dmp'
-     # unless CustomerPusher.modify_customer(customer)
-     #	CustomerPusher.add_customer(customer)
-     # end
+      SalesReceiptPusher.add_receipt(sales_receipt)
     end
   rescue Exception => e
     Rails.logger.info "Error ==>"
@@ -86,9 +84,7 @@ class Consumer
 	Rails.logger.info "StPurchasePackage Del Error: ==>#{ receipt_line.inspect }"
       end
     elsif receipt_line.operation == 'dmp'
-     # unless CustomerPusher.modify_customer(customer)
-     #	CustomerPusher.add_customer(customer)
-     # end
+      SalesReceiptLinePusher.add_receipt_line(receipt_line)
     end
   rescue Exception => e
     Rails.logger.info "Error ==>"
