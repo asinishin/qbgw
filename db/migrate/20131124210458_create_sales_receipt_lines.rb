@@ -2,6 +2,7 @@ class CreateSalesReceiptLines < ActiveRecord::Migration
   def change
     create_table :sales_receipt_lines do |t|
       t.integer :sales_receipt_bit_id, null: false
+      t.string  :txn_line_id
       t.integer :item_id,              null: false
       t.string  :quantity
       t.string  :amount

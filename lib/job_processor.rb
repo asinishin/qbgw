@@ -244,9 +244,44 @@ class JobProcessor
   def self.reading_customers_end_tk
     case Snapshot.current_status
     when :reading_customers
-      QbIterator.iterator_id = nil
-
       # Prepare Delta Queue for Customers
+      snapshot = Snapshot.current
+
+      StUser.order('sat_id').each do |customer|
+        full_name = customer.first_name + ' ' + customer.last_name
+        qb_customer = nil
+
+	customer_ref = CustomerRef.where("sat_id = #{ customer.sat_id }").first
+        customer_ref = CustomerRef.create(sat_id: customer.sat_id) unless customer_ref
+
+	if customer_ref.qb_id
+	  qb_customer = QbCustomer.where(
+	    "list_id = '#{ customer_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
+	  ).first
+	else
+	  qb_customer = QbCustomer.where(
+	    "name = '#{ full_name }' AND snapshot_id = #{ snapshot.id }"
+	  ).first
+	end
+
+	if qb_customer
+	  unless qb_customer.name == full_name
+	    CustomerBit.create(
+	      operation:       'upd',
+	      first_name:      customer.first_name,
+	      last_name:       customer.last_name,
+	      customer_ref_id: customer_ref.id
+	    )
+	  end
+	else
+	  CustomerBit.create(
+	    operation:       'add',
+	    first_name:      customer.first_name,
+	    last_name:       customer.last_name,
+	    customer_ref_id: customer_ref.id
+	  )
+	end
+      end
 
       Snapshot.move_to(:sending_customers)
     else
@@ -257,8 +292,91 @@ class JobProcessor
   def self.reading_sales_end_tk
     case Snapshot.current_status
     when :reading_sales
-
       # Prepare Delta Queue for Sales
+      snapshot = Snapshot.current
+
+      StPurchase.order('sat_id').each do |purchase|
+        qb_sales_receipt = nil
+
+	sales_receipt_ref = SalesReceiptRef.where("sat_id = #{ purchase.sat_id }").first
+        sales_receipt_ref = SalesReceiptRef.create(sat_id: purchase.sat_id) unless sales_receipt_ref
+
+	if sales_receipt_ref.qb_id
+	  qb_sales_receipt = QbSalesReceipt.where(
+	    "txn_id = '#{ sales_receipt_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
+	  ).first
+	end
+
+	if qb_sales_receipt
+	  counters = {}
+	  qb_lines = {}
+          QbSalesReceiptLine.where("qb_sales_receipt_id = #{ qb_sales_receipt.id }").each do |line|
+	    key = line.item_ref + line.class_ref + line.quantity + line.amount
+	    cnt = 1
+	    cnt = counters[key] + 1 if counters[key]
+	    counters.merge!(key => cnt)
+	    qb_lines.merge!((key + cnt.to_s) => line)
+	  end
+
+	  counters = {}
+	  st_lines = {}
+	  StPurchasePackage.where("sat_id = #{ purchase.sat_id }").each do |pp|
+	    key = pp.qb_item_ref + pp.class_ref + pp.quantity + pp.amount
+	    cnt = 1
+	    cnt = counters[key] + 1 if counters[key]
+	    counters.merge!(key => cnt)
+	    st_lines.merge!((key + cnt.to_s) => pp)
+	  end
+
+	  unless qb_lines.keys == st_lines.keys
+	    bit = SalesReceiptBit.create(
+	      operation:   'upd',
+	      txn_id:      qb_sales_receipt.txn_id,
+	      customer_id: purchase.sat_customer_id,
+	      ref_number:  purchase.ref_number,
+	      txn_date:    purchase.txn_date,
+	      sales_receipt_ref_id: sales_receipt_ref.id
+	    )
+
+	    st_lines.keys.each do |key|
+	      if qb_lines[key].nil?
+		SalesReceiptLine.create(
+		  txn_line_id: "-1",
+		  item_id:     st_line.sat_item_id,
+		  quantity:    st_line.quantity,
+		  amount:      st_line.amount,
+		  class_ref:   st_line.class_ref,
+		  sales_receipt_bit_id: bit.id
+		)
+	      else
+		SalesReceiptLine.create(
+		  txn_line_id: qb_lines[key].txn_line_id,
+		  item_id:     0,
+		  sales_receipt_bit_id: bit.id
+		)
+	      end
+	    end
+
+	  end
+	else
+	  bit = SalesReceiptBit.create(
+	    operation:   'add',
+	    customer_id: purchase.sat_customer_id,
+	    ref_number:  purchase.ref_number,
+	    txn_date:    purchase.txn_date,
+	    sales_receipt_ref_id: sales_receipt_ref.id
+	  )
+	  StPurchasePackage.where("sat_id = #{ purchase.sat_id }").each do |pp|
+	    SalesReceiptLine.create(
+	      item_id:   pp.sat_item_id,
+	      quantity:  pp.quantity,
+	      amount:    pp.amount,
+	      class_ref: pp.class_ref,
+	      sales_receipt_bit_id: bit.id
+	    )
+	  end
+	end
+      end
 
       Snapshot.move_to(:sending_sales)
     else
@@ -509,6 +627,36 @@ class JobProcessor
 	    :xml_attributes => { "requestID" => delta.id },
 	    :txn_del_type   => "SalesReceipt",
 	    :txn_id => delta.sales_receipt_ref.qb_id
+	  }
+	end 
+      )
+    end
+
+    upds = bits.select { |v| v.operation == 'upd' }
+    if upds.size > 0
+      request.merge!( 
+	:sales_receipt_mod_rq => upds.map do |delta|
+	  lines = delta.sales_receipt_lines 
+	  {
+	    :xml_attributes => { "requestID" => delta.id },
+	    :sales_receipt_mod => {
+	      :txn_id => delta.sales_receipt_ref.qb_id,
+	      :sales_receipt_line_mod => lines.map do |line|
+	        if line.txn_line_id == "-1"
+		  item = ItemServiceRef.where("sat_id = #{ line.item_id }").first
+		  item_ref = item.qb_id if item
+		  {
+		    :item_ref    => { list_id: item_ref },
+		    :quantity    => line.quantity,
+		    :amount      => line.amount,
+		    :class_ref   => { full_name: line.class_ref },
+		    :txn_line_id => line.txn_line_id
+		  }
+		else
+		  { :txn_line_id => line.txn_line_id }
+		end
+	      end
+	    }
 	  }
 	end 
       )
