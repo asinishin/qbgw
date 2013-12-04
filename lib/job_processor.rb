@@ -23,6 +23,8 @@ class JobProcessor
   def self.qb_tick_tk
     case Snapshot.current_status
     when :start
+      # Prepare iterator for reading
+      QbIterator.iterator_id = nil
       Snapshot.move_to(:reading_items)
       JobProcessor.qb_tick_tk
     when :reading_items
@@ -31,6 +33,8 @@ class JobProcessor
       request = JobProcessor.build_items_request
 
       if request.size == 0
+	# Prepare iterator for reading
+	QbIterator.iterator_id = nil
         Snapshot.move_to(:reading_customers)
 	JobProcessor.qb_tick_tk
       else
@@ -42,6 +46,8 @@ class JobProcessor
       request = JobProcessor.build_customers_request
 
       if request.size == 0
+	# Prepare iterator for reading
+	QbIterator.iterator_id = nil
         Snapshot.move_to(:reading_sales)
 	JobProcessor.qb_tick_tk
       else
@@ -187,9 +193,47 @@ class JobProcessor
   def self.reading_items_end_tk
     case Snapshot.current_status
     when :reading_items
-      QbIterator.iterator_id = nil
-
       # Prepare Delta Queue for Items
+      snapshot = Snapshot.current
+
+      StPackage.order('sat_id').each do |item|
+        qb_item = nil
+
+	item_ref = ItemServiceRef.where("sat_id = #{ item.sat_id }").first
+        item_ref = ItemServiceRef.create(sat_id: item.sat_id) unless item_ref
+
+	if item_ref.qb_id
+	  qb_item = QbItemService.where(
+	    "list_id = '#{ item_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
+	  ).first
+	else
+	  qb_item = QbItemService.where(
+	    "name = '#{ item.name }' AND snapshot_id = #{ snapshot.id }"
+	  ).first
+	end
+
+	if qb_item
+	  unless qb_item.name == item.name && \
+	         qb_item.description == item.description && \
+		 qb_item.account_ref == item.account_ref
+	    ItemServiceBit.create(
+	      operation:   'upd',
+	      name:        item.name,
+	      description: item.description,
+	      account_ref: item.account_ref,
+	      item_service_ref_id: item_ref.id
+	    )
+	  end
+	else
+	  ItemServiceBit.create(
+	    operation:   'add',
+	    name:        item.name,
+	    description: item.description,
+	    account_ref: item.account_ref,
+	    item_service_ref_id: item_ref.id
+	  )
+	end
+      end
 
       Snapshot.move_to(:sending_items)
     else
