@@ -33,7 +33,7 @@ class Consumer
       unless CustomerPusher.modify_customer(customer)
 	Rails.logger.info "StPackage Upd Error: ==>#{ customer.inspect }"
       end
-    elsif item_service.operation == 'dmp'
+    elsif customer.operation == 'dmp'
       unless CustomerPusher.modify_customer(customer)
 	CustomerPusher.add_customer(customer)
       end
@@ -51,11 +51,33 @@ class Consumer
       unless SalesReceiptPusher.add_receipt(sales_receipt)
 	Rails.logger.info "StPurchase Add Error: ==>#{ sales_receipt.inspect }"
       end
-    elsif customer.operation == 'del'
+    elsif sales_receipt.operation == 'del'
       unless SalesReceiptPusher.delete_receipt(sales_receipt)
-	Rails.logger.info "StPurchase Upd Error: ==>#{ sales_receipt.inspect }"
+	Rails.logger.info "StPurchase Del Error: ==>#{ sales_receipt.inspect }"
       end
-    elsif item_service.operation == 'dmp'
+    elsif sales_receipt.operation == 'dmp'
+     # unless CustomerPusher.modify_customer(customer)
+     #	CustomerPusher.add_customer(customer)
+     # end
+    end
+  rescue Exception => e
+    Rails.logger.info "Error ==>"
+    Rails.logger.info(e.class.name + ':' + e.to_s)
+    Rails.logger.info e.backtrace.join("\n")
+  end
+
+  def self.proc_sales_receipt_line(delivery_info, metadata, payload)
+    receipt_line = SalesReceiptLineBeef.decode(payload)
+    Rails.logger.info "Sales receipt pushed ==> #{ receipt_line.operation }"
+    if receipt_line.operation == 'add'
+      unless SalesReceiptLinePusher.add_receipt_line(receipt_line)
+	Rails.logger.info "StPurchasePackage Add Error: ==>#{ receipt_line.inspect }"
+      end
+    elsif receipt_line.operation == 'del'
+      unless SalesReceiptLinePusher.delete_receipt_line(receipt_line)
+	Rails.logger.info "StPurchasePackage Del Error: ==>#{ receipt_line.inspect }"
+      end
+    elsif receipt_line.operation == 'dmp'
      # unless CustomerPusher.modify_customer(customer)
      #	CustomerPusher.add_customer(customer)
      # end

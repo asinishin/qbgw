@@ -35,6 +35,7 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
       sale_lines_queue = q_channel.queue("sale_lines", :durable => true, :auto_delete => false)
 
       sale_lines_queue.subscribe do |delivery_info, metadata, payload|
+        Consumer.proc_sales_receipt_line(delivery_info, metadata, payload)
       end
 
       $q_tick = 0
