@@ -1,3 +1,4 @@
+require 'batch_beef'
 require 'customer_beef'
 require 'customer_pusher'
 require 'item_service_beef'
@@ -92,4 +93,20 @@ class Consumer
     Rails.logger.info e.backtrace.join("\n")
   end
 
+  def self.proc_control(delivery_info, metadata, payload)
+    batch = BatchBeef.decode(payload)
+    Rails.logger.info "Sales batch pushed ==> "
+
+    # Reset all running batches
+    Snapshot.update_all("status = 'done'", "status != 'done'")
+
+    Snapshot.create(
+      date_from: batch.date_from,
+      date_to:   batch.date_to
+    )
+  rescue Exception => e
+    Rails.logger.info "Error ==>"
+    Rails.logger.info(e.class.name + ':' + e.to_s)
+    Rails.logger.info e.backtrace.join("\n")
+  end
 end

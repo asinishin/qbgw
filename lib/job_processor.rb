@@ -23,8 +23,14 @@ class JobProcessor
   def self.qb_tick_tk
     case Snapshot.current_status
     when :start
+      # Clean up queues
+      ItemServiceBit.delete_all
+      CustomerBit.delete_all
+      SalesReceiptBit.delete_all
+
       # Prepare iterator for reading
       QbIterator.iterator_id = nil
+
       Snapshot.move_to(:reading_items)
       JobProcessor.qb_tick_tk
     when :reading_items
