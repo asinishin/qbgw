@@ -87,20 +87,22 @@ class JobProcessor
       if r['item_service_ret'] && r['item_service_ret'].respond_to?(:to_ary) 
 	r['item_service_ret'].each do |item| 
 	  QbItemService.create(
-	    list_id:     item['list_id'],
-	    name:        item['name'],
-	    description: item['sales_or_purchase']['desc'],
-	    account_ref: item['sales_or_purchase']['account_ref']['full_name'],
-	    snapshot_id: curr.id
+	    list_id:       item['list_id'],
+	    edit_sequence: item['edit_sequence'],
+	    name:          item['name'],
+	    description:   item['sales_or_purchase']['desc'],
+	    account_ref:   item['sales_or_purchase']['account_ref']['full_name'],
+	    snapshot_id:   curr.id
 	  )
 	end
       elsif r['item_service_ret']
 	QbItemService.create(
-	  list_id:     r['item_service_ret']['list_id'],
-	  name:        r['item_service_ret']['name'],
-	  description: r['item_service_ret']['sales_or_purchase']['desc'],
-	  account_ref: r['item_service_ret']['sales_or_purchase']['account_ref']['full_name'],
-	  snapshot_id: curr.id
+	  list_id:       r['item_service_ret']['list_id'],
+	  edit_sequence: r['item_service_ret']['edit_sequence'],
+	  name:          r['item_service_ret']['name'],
+	  description:   r['item_service_ret']['sales_or_purchase']['desc'],
+	  account_ref:   r['item_service_ret']['sales_or_purchase']['account_ref']['full_name'],
+	  snapshot_id:   curr.id
 	)
       end
 
@@ -215,6 +217,11 @@ class JobProcessor
 	end
 
 	if qb_item
+	  item_ref.update_attributes(
+	    edit_sequence: qb_item.edit_sequence,
+	    list_id:       qb_item.list_id
+	  )
+
 	  unless qb_item.name == item.name && \
 	         qb_item.description == item.description && \
 		 qb_item.account_ref == item.account_ref
@@ -527,7 +534,6 @@ class JobProcessor
 	    :xml_attributes => { "requestID" => delta.id },
 	    :item_service_mod   => {
 	      :list_id       => delta.item_service_ref.qb_id,
-	      :full_name     => delta.name,
 	      :edit_sequence => delta.item_service_ref.edit_sequence,
 	      :name          => delta.name,
 	      :sales_or_purchase_mod => {
@@ -583,7 +589,6 @@ class JobProcessor
 	    :xml_attributes => { "requestID" => delta.id },
 	    :customer_mod   => {
 	      :list_id       => delta.customer_ref.qb_id,
-	      :full_name     => delta.first_name + ' ' + delta.last_name,
 	      :edit_sequence => delta.customer_ref.edit_sequence,
 	      :name          => delta.first_name + ' ' + delta.last_name,
 	      :first_name    => delta.first_name,
