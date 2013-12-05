@@ -214,7 +214,8 @@ class JobProcessor
 	  ).first
 	else
 	  qb_item = QbItemService.where(
-	    "name = '#{ item.name }' AND snapshot_id = #{ snapshot.id }"
+	    "name = ? AND snapshot_id = #{ snapshot.id }",
+	    item.name
 	  ).first
 	end
 
@@ -271,7 +272,8 @@ class JobProcessor
 	  ).first
 	else
 	  qb_customer = QbCustomer.where(
-	    "name = '#{ full_name }' AND snapshot_id = #{ snapshot.id }"
+	    "name = ? AND snapshot_id = #{ snapshot.id }",
+	    full_name
 	  ).first
 	end
 
