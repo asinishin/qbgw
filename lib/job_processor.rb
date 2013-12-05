@@ -124,16 +124,18 @@ class JobProcessor
       if r['customer_ret'] && r['customer_ret'].respond_to?(:to_ary) 
 	r['customer_ret'].each do |cs| 
 	  QbCustomer.create(
-	    list_id:     cs['list_id'],
-	    name:        cs['name'],
-	    snapshot_id: curr.id
+	    list_id:       cs['list_id'],
+	    edit_sequence: cs['edit_sequence'],
+	    name:          cs['name'],
+	    snapshot_id:   curr.id
 	  )
 	end
       elsif r['customer_ret']
 	QbCustomer.create(
-	  list_id:     r['customer_ret']['list_id'],
-	  name:        r['customer_ret']['name'],
-	  snapshot_id: curr.id
+	  list_id:       r['customer_ret']['list_id'],
+	  edit_sequence: r['customer_ret']['edit_sequence'],
+	  name:          r['customer_ret']['name'],
+	  snapshot_id:   curr.id
 	)
       end
 
@@ -274,6 +276,11 @@ class JobProcessor
 	end
 
 	if qb_customer
+	  customer_ref.update_attributes(
+	    edit_sequence: qb_customer.edit_sequence,
+	    qb_id:         qb_customer.list_id
+	  )
+
 	  unless qb_customer.name == full_name
 	    CustomerBit.create(
 	      operation:       'upd',
@@ -514,7 +521,7 @@ class JobProcessor
 
   def self.build_items_request
     bits = []
-    10.times.each do
+    20.times.each do
       delta = ItemServicePuller.next_bit
       break if delta.nil?
 
@@ -569,7 +576,7 @@ class JobProcessor
 
   def self.build_customers_request
     bits = []
-    10.times.each do
+    20.times.each do
       delta = CustomerPuller.next_bit
       break if delta.nil?
 
@@ -619,7 +626,7 @@ class JobProcessor
 
   def self.build_sales_request
     bits = []
-    10.times.each do
+    20.times.each do
       delta = SalesReceiptPuller.next_bit
       break if delta.nil?
 
