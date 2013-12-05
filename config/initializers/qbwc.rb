@@ -25,7 +25,7 @@ QBWC.configure do |c|
   # will speed up qbwc session time (and potentially fix timeout issues) but
   # will necessarily eat up more memory since every response must be stored
   # until it is processed. 
-  c.delayed_processing = true
+  c.delayed_processing = false
 
   # In the event of an error in the communication process do you wish the sync to stop or blaze through
   #
