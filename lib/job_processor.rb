@@ -89,6 +89,7 @@ class JobProcessor
 	  QbItemService.create(
 	    list_id:     item['list_id'],
 	    name:        item['name'],
+	    description: item['sales_or_purchase']['desc'],
 	    account_ref: item['sales_or_purchase']['account_ref']['full_name'],
 	    snapshot_id: curr.id
 	  )
@@ -97,6 +98,7 @@ class JobProcessor
 	QbItemService.create(
 	  list_id:     r['item_service_ret']['list_id'],
 	  name:        r['item_service_ret']['name'],
+	  description: r['item_service_ret']['sales_or_purchase']['desc'],
 	  account_ref: r['item_service_ret']['sales_or_purchase']['account_ref']['full_name'],
 	  snapshot_id: curr.id
 	)
