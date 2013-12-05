@@ -219,7 +219,7 @@ class JobProcessor
 	if qb_item
 	  item_ref.update_attributes(
 	    edit_sequence: qb_item.edit_sequence,
-	    list_id:       qb_item.list_id
+	    qb_id:         qb_item.list_id
 	  )
 
 	  unless qb_item.name == item.name && \
