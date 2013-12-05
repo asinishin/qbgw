@@ -514,8 +514,6 @@ class JobProcessor
   def self.build_select_sales_request
     return nil if JobProcessor.iterator_not_ready?
 
-    Rails.logger.info "Here we are ever ==>"
-
     attrs = JobProcessor.prepare_iterator
 
     {
@@ -746,10 +744,12 @@ class JobProcessor
     else
       ItemServicePuller.done(delta.id) if delta
     end
-    if delta.nil?
-      Rails.logger.info "Error: Quickbooks request is not found ==>"
-      Rails.logger.info r.inspect
-    end
+    # I dont understand why it is double shooting responses.
+    # Still I comment this error for now.
+    #if delta.nil?
+    #  Rails.logger.info "Error: Quickbooks request is not found ==>"
+    #  Rails.logger.info r.inspect
+    #end
   end
 
   def self.process_items_response(r)
@@ -801,10 +801,12 @@ class JobProcessor
     else
       CustomerPuller.done(delta.id) if delta
     end
-    if delta.nil?
-      Rails.logger.info "Error: Quickbooks request is not found ==>"
-      Rails.logger.info r.inspect
-    end
+    # I dont understand why it is double shooting responses.
+    # Still I comment this error for now.
+    #if delta.nil?
+    #  Rails.logger.info "Error: Quickbooks request is not found ==>"
+    #  Rails.logger.info r.inspect
+    #end
   end
 
   def self.process_customers_response(r)
@@ -859,10 +861,12 @@ class JobProcessor
     else
       SalesReceiptPuller.done(delta.id) if delta
     end
-    if delta.nil?
-      Rails.logger.info "Error: Quickbooks request is not found ==>"
-      Rails.logger.info r.inspect
-    end
+    # I dont understand why it is double shooting responses.
+    # Still I comment this error for now.
+    #if delta.nil?
+    #  Rails.logger.info "Error: Quickbooks request is not found ==>"
+    #  Rails.logger.info r.inspect
+    #end
   end
 
   def self.process_sales_response(r)
