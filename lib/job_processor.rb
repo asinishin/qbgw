@@ -527,6 +527,7 @@ class JobProcessor
 	    :xml_attributes => { "requestID" => delta.id },
 	    :item_service_mod   => {
 	      :list_id       => delta.item_service_ref.qb_id,
+	      :full_name     => delta.name,
 	      :edit_sequence => delta.item_service_ref.edit_sequence,
 	      :name          => delta.name,
 	      :sales_or_purchase_mod => {
@@ -582,6 +583,7 @@ class JobProcessor
 	    :xml_attributes => { "requestID" => delta.id },
 	    :customer_mod   => {
 	      :list_id       => delta.customer_ref.qb_id,
+	      :full_name     => delta.first_name + ' ' + delta.last_name,
 	      :edit_sequence => delta.customer_ref.edit_sequence,
 	      :name          => delta.first_name + ' ' + delta.last_name,
 	      :first_name    => delta.first_name,
