@@ -164,20 +164,22 @@ class JobProcessor
 	r['sales_receipt_ret'].each do |rct| 
 	  JobProcessor.store_qb_receipt_lines(rct,
 	    QbSalesReceipt.create(
-	      txn_id:      rct['txn_id'],
-	      ref_number:  rct['ref_number'],
-	      txn_date:    rct['txn_date'],
-	      snapshot_id: curr.id
+	      txn_id:        rct['txn_id'],
+	      edit_sequence: rct['edit_sequence'],
+	      ref_number:    rct['ref_number'],
+	      txn_date:      rct['txn_date'],
+	      snapshot_id:   curr.id
 	    )
 	  )
 	end
       elsif r['sales_receipt_ret']
 	JobProcessor.store_qb_receipt_lines(r['sales_receipt_ret'],
 	  QbSalesReceipt.create(
-	    txn_id:      r['sales_receipt_ret']['txn_id'],
-	    ref_number:  r['sales_receipt_ret']['ref_number'],
-	    txn_date:    r['sales_receipt_ret']['txn_date'],
-	    snapshot_id: curr.id
+	    txn_id:        r['sales_receipt_ret']['txn_id'],
+	    edit_sequence: r['sales_receipt_ret']['edit_sequence'],
+	    ref_number:    r['sales_receipt_ret']['ref_number'],
+	    txn_date:      r['sales_receipt_ret']['txn_date'],
+	    snapshot_id:   curr.id
 	  )
 	)
       end
@@ -332,6 +334,11 @@ class JobProcessor
 	end
 
 	if qb_sales_receipt
+	  sales_receipt_ref.update_attributes(
+	    edit_sequence: qb_sales_receipt.edit_sequence,
+	    qb_id:         qb_sales_receipt.txn_id
+	  )
+
 	  counters = {}
 	  qb_lines = {}
           QbSalesReceiptLine.where("qb_sales_receipt_id = #{ qb_sales_receipt.id }").each do |line|
@@ -345,7 +352,8 @@ class JobProcessor
 	  counters = {}
 	  st_lines = {}
 	  StPurchasePackage.where("sat_id = #{ purchase.sat_id }").each do |pp|
-	    key = pp.qb_item_ref + pp.class_ref + pp.quantity + pp.amount
+	    item_ref = StPackage.where('sat_id = ?', pp.sat_item_id).first
+	    key = item_ref + pp.class_ref + pp.quantity + pp.amount
 	    cnt = 1
 	    cnt = counters[key] + 1 if counters[key]
 	    counters.merge!(key => cnt)
@@ -665,7 +673,8 @@ class JobProcessor
 	  {
 	    :xml_attributes => { "requestID" => delta.id },
 	    :sales_receipt_mod => {
-	      :txn_id => delta.sales_receipt_ref.qb_id,
+	      :txn_id        => delta.sales_receipt_ref.qb_id,
+	      :edit_sequence => delta.sales_receipt_ref.edit_sequence,
 	      :sales_receipt_line_mod => lines.map do |line|
 	        if line.txn_line_id == "-1"
 		  item = ItemServiceRef.where("sat_id = #{ line.item_id }").first
