@@ -866,6 +866,7 @@ class JobProcessor
     if r['xml_attributes']['statusCode'] != '0'
       Rails.logger.info "Error: Quickbooks returned an error ==>"
       Rails.logger.info r.inspect
+      Rails.logger.info "Pruchase: #" + delta.ref_number if delta
       SalesReceiptPuller.reset(delta.id) if delta
     else
       SalesReceiptPuller.done(delta.id) if delta
