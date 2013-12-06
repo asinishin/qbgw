@@ -86,6 +86,11 @@ class JobProcessor
   end
 
   def self.qb_response_tk(r)
+    # Check for XML format error
+    if r['hresult']
+      JobProcessor.error_tk(r['message'])
+    end
+
     # Unwrap response message
     r = r['qbxml_msgs_rs'] if r['qbxml_msgs_rs']
 
