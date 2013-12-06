@@ -1,6 +1,6 @@
 require 'item_service_puller'
 require 'customer_puller'
-require 'sales_receipt_puller'
+#require 'sales_receipt_puller'
 require 'qb_iterator'
 
 class JobProcessor
@@ -160,25 +160,30 @@ class JobProcessor
       QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
       curr = Snapshot.current
 
-      if r['sales_receipt_ret'] && r['sales_receipt_ret'].respond_to?(:to_ary) 
-	r['sales_receipt_ret'].each do |rct| 
-	  JobProcessor.store_qb_receipt_lines(rct,
+      if r['charge_ret'] && r['charge_ret'].respond_to?(:to_ary) 
+	r['charge_ret'].each do |rct| 
 	    QbSalesReceipt.create(
 	      txn_id:        rct['txn_id'],
 	      edit_sequence: rct['edit_sequence'],
 	      ref_number:    rct['ref_number'],
 	      txn_date:      rct['txn_date'],
+	      customer_ref:  rct['customer_ref']['list_id']
+
+	      item_ref:      rct['item_ref']['list_id'],
+	      quantity:      rct['quantity'],
+	      amount:        rct['amount'],
+	      class_ref:     rct['class_ref']['full_name'],
+
 	      snapshot_id:   curr.id
 	    )
-	  )
 	end
       elsif r['sales_receipt_ret']
 	JobProcessor.store_qb_receipt_lines(r['sales_receipt_ret'],
 	  QbSalesReceipt.create(
-	    txn_id:        r['sales_receipt_ret']['txn_id'],
-	    edit_sequence: r['sales_receipt_ret']['edit_sequence'],
-	    ref_number:    r['sales_receipt_ret']['ref_number'],
-	    txn_date:      r['sales_receipt_ret']['txn_date'],
+	    txn_id:        r['charge_ret']['txn_id'],
+	    edit_sequence: r['charge_ret']['edit_sequence'],
+	    ref_number:    r['charge_ret']['ref_number'],
+	    txn_date:      r['charge_ret']['txn_date'],
 	    snapshot_id:   curr.id
 	  )
 	)
@@ -467,30 +472,6 @@ class JobProcessor
     attrs
   end
 
-  def self.store_qb_receipt_lines(r, qb_rct)
-    if r['sales_receipt_line_ret'] && r['sales_receipt_line_ret'].respond_to?(:to_ary) 
-      r['sales_receipt_line_ret'].each do |line| 
-	QbSalesReceiptLine.create(
-	  txn_line_id: line['txn_line_id'],
-	  item_ref:    line['item_ref']['list_id'],
-	  class_ref:   line['class_ref']['full_name'],
-	  quantity:    line['quantity'],
-	  amount:      line['amount'],
-	  qb_sales_receipt_id: qb_rct.id
-	)
-      end
-    elsif r['sales_receipt_line_ret']
-      QbSalesReceiptLine.create(
-	txn_line_id: r['sales_receipt_line_ret']['txn_line_id'],
-	item_ref:    r['sales_receipt_line_ret']['item_ref']['list_id'],
-	class_ref:   r['sales_receipt_line_ret']['class_ref']['full_name'],
-	quantity:    r['sales_receipt_line_ret']['quantity'],
-	amount:      r['sales_receipt_line_ret']['amount'],
-	qb_sales_receipt_id: qb_rct.id
-      )
-    end
-  end
-
   def self.build_select_items_request
     return nil if JobProcessor.iterator_not_ready?
 
@@ -525,10 +506,9 @@ class JobProcessor
     attrs = JobProcessor.prepare_iterator
 
     {
-      :sales_receipt_query_rq => {
+      :charge_query_rq => {
 	:xml_attributes => attrs,
-	:max_returned => 20,
-	:include_line_items => 'True'
+	:max_returned => 20
       }
     }
   end

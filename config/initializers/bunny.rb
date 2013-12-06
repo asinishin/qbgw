@@ -19,16 +19,10 @@ if defined?(PhusionPassenger) # otherwise it breaks rake commands if you put thi
         Consumer.proc_item_service(delivery_info, metadata, payload)
       end
 
-      sales_queue = q_channel.queue("sales", :durable => true, :auto_delete => false)
+      charges_queue = q_channel.queue("charges", :durable => true, :auto_delete => false)
 
-      sales_queue.subscribe do |delivery_info, metadata, payload|
-        Consumer.proc_sales_receipt(delivery_info, metadata, payload)
-      end
-
-      sale_lines_queue = q_channel.queue("sale_lines", :durable => true, :auto_delete => false)
-
-      sale_lines_queue.subscribe do |delivery_info, metadata, payload|
-        Consumer.proc_sales_receipt_line(delivery_info, metadata, payload)
+      charges_queue.subscribe do |delivery_info, metadata, payload|
+        Consumer.proc_charge(delivery_info, metadata, payload)
       end
 
       control_queue = q_channel.queue("control", :durable => true, :auto_delete => false)

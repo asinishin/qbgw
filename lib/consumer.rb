@@ -3,9 +3,8 @@ require 'customer_beef'
 require 'customer_pusher'
 require 'item_service_beef'
 require 'item_service_pusher'
-require 'sales_receipt_beef'
-require 'sales_receipt_pusher'
-require 'sales_receipt_line_pusher'
+require 'charge_beef'
+require 'charge_pusher'
 
 class Consumer
 
@@ -53,39 +52,19 @@ class Consumer
     Rails.logger.info e.backtrace.join("\n")
   end
 
-  def self.proc_sales_receipt(delivery_info, metadata, payload)
-    sales_receipt = SalesReceiptBeef.decode(payload)
-    Rails.logger.info "Sales receipt pushed ==> #{ sales_receipt.operation }"
-    if sales_receipt.operation == 'add'
-      unless SalesReceiptPusher.add_receipt(sales_receipt)
-	Rails.logger.info "StPurchase Add Error: ==>#{ sales_receipt.inspect }"
+  def self.proc_charge(delivery_info, metadata, payload)
+    charge = ChargeBeef.decode(payload)
+    Rails.logger.info "Charge pushed ==> #{ charge.operation }"
+    if charge.operation == 'add'
+      unless ChargePusher.add_charge(charge)
+	Rails.logger.info "StPurchasePackage Add Error: ==>#{ charge.inspect }"
       end
-    elsif sales_receipt.operation == 'del'
-      unless SalesReceiptPusher.delete_receipt(sales_receipt)
-	Rails.logger.info "StPurchase Del Error: ==>#{ sales_receipt.inspect }"
+    elsif charge.operation == 'del'
+      unless ChargePusher.delete_charge(charge)
+	Rails.logger.info "StPurchasePackage Del Error: ==>#{ charge.inspect }"
       end
-    elsif sales_receipt.operation == 'dmp'
-      SalesReceiptPusher.add_receipt(sales_receipt)
-    end
-  rescue Exception => e
-    Rails.logger.info "Error ==>"
-    Rails.logger.info(e.class.name + ':' + e.to_s)
-    Rails.logger.info e.backtrace.join("\n")
-  end
-
-  def self.proc_sales_receipt_line(delivery_info, metadata, payload)
-    receipt_line = SalesReceiptLineBeef.decode(payload)
-    Rails.logger.info "Sales receipt pushed ==> #{ receipt_line.operation }"
-    if receipt_line.operation == 'add'
-      unless SalesReceiptLinePusher.add_receipt_line(receipt_line)
-	Rails.logger.info "StPurchasePackage Add Error: ==>#{ receipt_line.inspect }"
-      end
-    elsif receipt_line.operation == 'del'
-      unless SalesReceiptLinePusher.delete_receipt_line(receipt_line)
-	Rails.logger.info "StPurchasePackage Del Error: ==>#{ receipt_line.inspect }"
-      end
-    elsif receipt_line.operation == 'dmp'
-      SalesReceiptLinePusher.add_receipt_line(receipt_line)
+    elsif charge.operation == 'dmp'
+      ChargePusher.add_charge(charge)
     end
   rescue Exception => e
     Rails.logger.info "Error ==>"
