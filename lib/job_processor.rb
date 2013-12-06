@@ -5,6 +5,9 @@ require 'qb_iterator'
 
 class JobProcessor
 
+  FATAL_ERROR = "We are sorry, our server has got a problem. Please contact us and we will fix it shortly."
+  QB_EROOR    = "Error: Quickbooks returned an error ==>\n"
+
   def self.start
     QBWC.add_job(:qb_exchange) do
       JobProcessor.qb_tick_tk
@@ -79,6 +82,7 @@ class JobProcessor
     Rails.logger.info "Error ==>"
     Rails.logger.info(e.class.name + ':' + e.to_s)
     Rails.logger.info e.backtrace.join("\n")
+    JobProcessor.error_tk(FATAL_ERROR)
   end
 
   def self.qb_response_tk(r)
@@ -202,6 +206,7 @@ class JobProcessor
     Rails.logger.info "Error ==>"
     Rails.logger.info(e.class.name + ':' + e.to_s)
     Rails.logger.info e.backtrace.join("\n")
+    JobProcessor.error_tk(FATAL_ERROR)
   end
 
   def self.reading_items_end_tk
@@ -424,6 +429,7 @@ class JobProcessor
     when :sending_sales
 
       # Email notification
+      UserMailer.delay.completion(Snapshot.current.id)
 
       Snapshot.move_to(:done)
       nil
@@ -436,6 +442,7 @@ class JobProcessor
     Rails.logger.info(err_msg)
     
     # Email notification
+    UserMailer.delay.failure(Snapshot.current.id, err_msg)
 
     Snapshot.move_to(:done)
     nil
@@ -747,9 +754,8 @@ class JobProcessor
       item_service_ref.update_attribute(:qb_id, r['item_service_ret']['list_id'])
     end
     if r['xml_attributes']['statusCode'] != '0'
-      Rails.logger.info "Error: Quickbooks returned an error ==>"
-      Rails.logger.info r.inspect
       ItemServicePuller.reset(delta.id) if delta
+      JobProcessor.error_tk(QB_ERROR + r.inspect)
     else
       ItemServicePuller.done(delta.id) if delta
     end
@@ -804,9 +810,8 @@ class JobProcessor
       customer_ref.update_attribute(:qb_id, r['customer_ret']['list_id'])
     end
     if r['xml_attributes']['statusCode'] != '0'
-      Rails.logger.info "Error: Quickbooks returned an error ==>"
-      Rails.logger.info r.inspect
       CustomerPuller.reset(delta.id) if delta
+      JobProcessor.error_tk(QB_ERROR + r.inspect)
     else
       CustomerPuller.done(delta.id) if delta
     end
@@ -864,12 +869,12 @@ class JobProcessor
       sales_receipt_ref.update_attributes(qb_id: nil, edit_sequence: nil)
     end
     if r['xml_attributes']['statusCode'] != '0'
-      Rails.logger.info "Error: Quickbooks returned an error ==>"
-      Rails.logger.info r.inspect
+      p_no = ""
       if delta
-	Rails.logger.info "Pruchase: #" + delta.ref_number
+	p_no = " Pruchase: #" + delta.ref_number
 	SalesReceiptPuller.reset(delta.id)
       end
+      JobProcessor.error_tk(QB_ERROR + r.inspect + p_no)
     else
       SalesReceiptPuller.done(delta.id) if delta
     end
