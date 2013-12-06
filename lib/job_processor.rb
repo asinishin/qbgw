@@ -374,10 +374,10 @@ class JobProcessor
 	      if qb_lines[key].nil?
 		SalesReceiptLine.create(
 		  txn_line_id: "-1",
-		  item_id:     st_line.sat_item_id,
-		  quantity:    st_line.quantity,
-		  amount:      st_line.amount,
-		  class_ref:   st_line.class_ref,
+		  item_id:     st_lines[key].sat_item_id,
+		  quantity:    st_lines[key].quantity,
+		  amount:      st_lines[key].amount,
+		  class_ref:   st_lines[key].class_ref,
 		  sales_receipt_bit_id: bit.id
 		)
 	      else
