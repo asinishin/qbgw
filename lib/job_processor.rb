@@ -545,8 +545,8 @@ class JobProcessor
 	:xml_attributes => attrs,
 	:max_returned => 20,
 	:txn_date_range_filter => {
-	  :from_txn_date => snapshot.date_from,
-	  :to_txn_date   => snapshot.date_to
+	  :from_txn_date => snapshot.date_from.to_s,
+	  :to_txn_date   => snapshot.date_to.to_s
 	},
 	:include_line_items => 'True',
 	:owner_id => 0
