@@ -5,8 +5,9 @@ gem 'mysql2'
 
 gem 'quickbooks_api', :git => 'git://github.com/asinishin/quickbooks_api.git'
 gem 'qbwc',           :git => 'git://github.com/asinishin/qbwc.git'
-gem "bunny"
-gem "beefcake"
+gem 'bunny'
+gem 'beefcake'
+gem 'daemons'
 gem 'delayed_job_active_record'
 
 group :test, :development do
