@@ -353,7 +353,7 @@ class JobProcessor
 	  st_lines = {}
 	  StPurchasePackage.where("sat_id = #{ purchase.sat_id }").each do |pp|
 	    item_ref = StPackage.where('sat_id = ?', pp.sat_item_id).first
-	    key = item_ref + pp.class_ref + pp.quantity + pp.amount
+	    key = item_ref.name + pp.class_ref + pp.quantity + pp.amount
 	    cnt = 1
 	    cnt = counters[key] + 1 if counters[key]
 	    counters.merge!(key => cnt)
