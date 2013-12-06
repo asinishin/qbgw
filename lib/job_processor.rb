@@ -471,6 +471,8 @@ class JobProcessor
       "requestID" => QbIterator.request_id,
       "iterator"  => QbIterator.iterator_id.nil? ? "Start" : "Continue"
     }
+    QbIterator.request_id = QbIterator.request_id + 1
+
     unless QbIterator.iterator_id.nil? # Start iterations?
       attrs.merge!(
         "iteratorID" => QbIterator.iterator_id
@@ -534,13 +536,20 @@ class JobProcessor
   def self.build_select_sales_request
     return nil if JobProcessor.iterator_not_ready?
 
+    snapshot = Snapshot.current
+
     attrs = JobProcessor.prepare_iterator
 
     {
       :sales_receipt_query_rq => {
 	:xml_attributes => attrs,
 	:max_returned => 20,
-	:include_line_items => 'True'
+	:txn_date_range_filter => {
+	  :from_txn_date => snapshot.date_from,
+	  :to_txn_date   => snapshot.date_to
+	},
+	:include_line_items => 'True',
+	:owner_id => 0
       }
     }
   end
