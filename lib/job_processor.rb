@@ -548,7 +548,7 @@ class JobProcessor
 	  :from_txn_date => snapshot.date_from.to_s,
 	  :to_txn_date   => snapshot.date_to.to_s
 	},
-	:include_line_items => 'True',
+	:include_line_items => 'true',
 	:owner_id => 0
       }
     }

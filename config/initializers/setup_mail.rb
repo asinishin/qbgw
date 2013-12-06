@@ -9,4 +9,4 @@ ActionMailer::Base.smtp_settings = {
   :openssl_verify_mode  => 'none'
 }
 
-QB_NOTIFICATIOIN_EMAIL = ENV['QBGW_NOTIFICATIOIN_EMAIL']
+QB_NOTIFICATION_EMAIL = ENV['QBGW_NOTIFICATION_EMAIL']
