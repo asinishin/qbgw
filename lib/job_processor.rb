@@ -353,7 +353,7 @@ class JobProcessor
 	  qb_lines = {}
           QbSalesReceiptLine.where("qb_sales_receipt_id = #{ qb_sales_receipt.id }").each do |line|
 	    item_service = QbItemService.where('list_id = ?', line.item_ref).first
-	    key = item_service.name + ':' + line.class_ref + ':' + line.quantity + ':' + line.amount
+	    key = item_service.name + ':' + line.class_ref + ':' + line.quantity.to_d.to_s + ':' + line.amount
 	    cnt = 1
 	    cnt = counters[key] + 1 if counters[key]
 	    counters.merge!(key => cnt)
@@ -364,7 +364,7 @@ class JobProcessor
 	  st_lines = {}
 	  StPurchasePackage.where("sat_id = #{ purchase.sat_id }").each do |pp|
 	    package = StPackage.where('sat_id = ?', pp.sat_item_id).first
-	    key = package.name + ':' + pp.class_ref + ':' + pp.quantity + ':' + pp.amount
+	    key = package.name + ':' + pp.class_ref + ':' + pp.quantity.to_d.to_s + ':' + pp.amount
 	    cnt = 1
 	    cnt = counters[key] + 1 if counters[key]
 	    counters.merge!(key => cnt)
