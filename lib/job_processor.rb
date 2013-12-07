@@ -29,6 +29,7 @@ class JobProcessor
       # Clean up queues
       ItemServiceBit.delete_all
       CustomerBit.delete_all
+      SalesReceiptLine.delete_all
       SalesReceiptBit.delete_all
 
       # Prepare iterator for reading
@@ -388,20 +389,22 @@ class JobProcessor
 
 	    st_lines.keys.each do |key|
 	      if qb_lines[key].nil?
-		SalesReceiptLine.create(
+                Rails.logger.info "Here we UPD new receipt line ==>" 
+		Rails.logger.info SalesReceiptLine.create(
 		  txn_line_id: "-1",
 		  item_id:     st_lines[key].sat_item_id,
 		  quantity:    st_lines[key].quantity,
 		  amount:      st_lines[key].amount,
 		  class_ref:   st_lines[key].class_ref,
 		  sales_receipt_bit_id: bit.id
-		)
+		).inspect
 	      else
-		SalesReceiptLine.create(
+                Rails.logger.info "Here we UPD keep receipt line ==>" 
+		Rails.logger.info SalesReceiptLine.create(
 		  txn_line_id: qb_lines[key].txn_line_id,
 		  item_id:     0,
 		  sales_receipt_bit_id: bit.id
-		)
+		).inspect
 	      end
 	    end
 
@@ -417,13 +420,14 @@ class JobProcessor
 	      sales_receipt_ref_id: sales_receipt_ref.id
 	    )
 	    purchase_packages.each do |pp|
-	      SalesReceiptLine.create(
+	      Rails.logger.info "Here we ADD receipt line ==>" 
+	      Rails.logger.info SalesReceiptLine.create(
 		item_id:   pp.sat_item_id,
 		quantity:  pp.quantity,
 		amount:    pp.amount,
 		class_ref: pp.class_ref,
 		sales_receipt_bit_id: bit.id
-	      )
+	      ).inspect
 	    end
 	  end
 	end
