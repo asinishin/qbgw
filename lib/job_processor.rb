@@ -87,45 +87,45 @@ class JobProcessor
   end
 
   def self.qb_response_tk(r)
-    # Check for XML format error
-    if r['hresult']
-      JobProcessor.error_tk(r['message'])
-    end
-
     # Unwrap response message
     r = r['qbxml_msgs_rs'] if r['qbxml_msgs_rs']
 
     case Snapshot.current_status
     when :reading_items
-      QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
-      curr = Snapshot.current
+      # If there are no items in QB
+      if r['xml_attributes']['statusCode'] == "1"
+	JobProcessor.reading_items_end_tk
+      else
+	QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
+	curr = Snapshot.current
 
-      if r['item_service_ret'] && r['item_service_ret'].respond_to?(:to_ary) 
-	r['item_service_ret'].each do |item| 
+	if r['item_service_ret'] && r['item_service_ret'].respond_to?(:to_ary) 
+	  r['item_service_ret'].each do |item| 
+	    QbItemService.create(
+	      list_id:       item['list_id'],
+	      edit_sequence: item['edit_sequence'],
+	      name:          item['name'],
+	      description:   item['sales_or_purchase']['desc'],
+	      account_ref:   item['sales_or_purchase']['account_ref']['full_name'],
+	      snapshot_id:   curr.id
+	    )
+	  end
+	elsif r['item_service_ret']
 	  QbItemService.create(
-	    list_id:       item['list_id'],
-	    edit_sequence: item['edit_sequence'],
-	    name:          item['name'],
-	    description:   item['sales_or_purchase']['desc'],
-	    account_ref:   item['sales_or_purchase']['account_ref']['full_name'],
+	    list_id:       r['item_service_ret']['list_id'],
+	    edit_sequence: r['item_service_ret']['edit_sequence'],
+	    name:          r['item_service_ret']['name'],
+	    description:   r['item_service_ret']['sales_or_purchase']['desc'],
+	    account_ref:   r['item_service_ret']['sales_or_purchase']['account_ref']['full_name'],
 	    snapshot_id:   curr.id
 	  )
 	end
-      elsif r['item_service_ret']
-	QbItemService.create(
-	  list_id:       r['item_service_ret']['list_id'],
-	  edit_sequence: r['item_service_ret']['edit_sequence'],
-	  name:          r['item_service_ret']['name'],
-	  description:   r['item_service_ret']['sales_or_purchase']['desc'],
-	  account_ref:   r['item_service_ret']['sales_or_purchase']['account_ref']['full_name'],
-	  snapshot_id:   curr.id
-	)
-      end
 
-      QbIterator.busy = false
+	QbIterator.busy = false
 
-      if QbIterator.remaining_count == 0
-        JobProcessor.reading_items_end_tk
+	if QbIterator.remaining_count == 0
+	  JobProcessor.reading_items_end_tk
+	end
       end
     when :sending_items
       if r['item_service_ret'] || r['item_service_mod_rs'] || r['item_service_add_rs']
@@ -134,31 +134,36 @@ class JobProcessor
 	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
       end
     when :reading_customers
-      QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
-      curr = Snapshot.current
+      # If there are no customers in QB
+      if r['xml_attributes']['statusCode'] == "1"
+	JobProcessor.reading_customers_end_tk
+      else
+	QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
+	curr = Snapshot.current
 
-      if r['customer_ret'] && r['customer_ret'].respond_to?(:to_ary) 
-	r['customer_ret'].each do |cs| 
+	if r['customer_ret'] && r['customer_ret'].respond_to?(:to_ary) 
+	  r['customer_ret'].each do |cs| 
+	    QbCustomer.create(
+	      list_id:       cs['list_id'],
+	      edit_sequence: cs['edit_sequence'],
+	      name:          cs['name'],
+	      snapshot_id:   curr.id
+	    )
+	  end
+	elsif r['customer_ret']
 	  QbCustomer.create(
-	    list_id:       cs['list_id'],
-	    edit_sequence: cs['edit_sequence'],
-	    name:          cs['name'],
+	    list_id:       r['customer_ret']['list_id'],
+	    edit_sequence: r['customer_ret']['edit_sequence'],
+	    name:          r['customer_ret']['name'],
 	    snapshot_id:   curr.id
 	  )
 	end
-      elsif r['customer_ret']
-	QbCustomer.create(
-	  list_id:       r['customer_ret']['list_id'],
-	  edit_sequence: r['customer_ret']['edit_sequence'],
-	  name:          r['customer_ret']['name'],
-	  snapshot_id:   curr.id
-	)
-      end
 
-      QbIterator.busy = false
+	QbIterator.busy = false
 
-      if QbIterator.remaining_count == 0
-        JobProcessor.reading_customers_end_tk
+	if QbIterator.remaining_count == 0
+	  JobProcessor.reading_customers_end_tk
+	end
       end
     when :sending_customers
       if r['customer_ret'] || r['customer_mod_rs'] || r['customer_add_rs']
@@ -167,37 +172,42 @@ class JobProcessor
 	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
       end
     when :reading_sales
-      QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
-      curr = Snapshot.current
+      # If there are no sales receipts in QB
+      if r['xml_attributes']['statusCode'] == "1"
+	JobProcessor.reading_sales_end_tk
+      else
+	QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
+	curr = Snapshot.current
 
-      if r['sales_receipt_ret'] && r['sales_receipt_ret'].respond_to?(:to_ary) 
-	r['sales_receipt_ret'].each do |rct| 
-	  JobProcessor.store_qb_receipt_lines(rct,
+	if r['sales_receipt_ret'] && r['sales_receipt_ret'].respond_to?(:to_ary) 
+	  r['sales_receipt_ret'].each do |rct| 
+	    JobProcessor.store_qb_receipt_lines(rct,
+	      QbSalesReceipt.create(
+		txn_id:        rct['txn_id'],
+		edit_sequence: rct['edit_sequence'],
+		ref_number:    rct['ref_number'],
+		txn_date:      rct['txn_date'],
+		snapshot_id:   curr.id
+	      )
+	    )
+	  end
+	elsif r['sales_receipt_ret']
+	  JobProcessor.store_qb_receipt_lines(r['sales_receipt_ret'],
 	    QbSalesReceipt.create(
-	      txn_id:        rct['txn_id'],
-	      edit_sequence: rct['edit_sequence'],
-	      ref_number:    rct['ref_number'],
-	      txn_date:      rct['txn_date'],
+	      txn_id:        r['sales_receipt_ret']['txn_id'],
+	      edit_sequence: r['sales_receipt_ret']['edit_sequence'],
+	      ref_number:    r['sales_receipt_ret']['ref_number'],
+	      txn_date:      r['sales_receipt_ret']['txn_date'],
 	      snapshot_id:   curr.id
 	    )
 	  )
 	end
-      elsif r['sales_receipt_ret']
-	JobProcessor.store_qb_receipt_lines(r['sales_receipt_ret'],
-	  QbSalesReceipt.create(
-	    txn_id:        r['sales_receipt_ret']['txn_id'],
-	    edit_sequence: r['sales_receipt_ret']['edit_sequence'],
-	    ref_number:    r['sales_receipt_ret']['ref_number'],
-	    txn_date:      r['sales_receipt_ret']['txn_date'],
-	    snapshot_id:   curr.id
-	  )
-	)
-      end
 
-      QbIterator.busy = false
+	QbIterator.busy = false
 
-      if QbIterator.remaining_count == 0
-        JobProcessor.reading_sales_end_tk
+	if QbIterator.remaining_count == 0
+	  JobProcessor.reading_sales_end_tk
+	end
       end
     when :sending_sales
       if r['sales_receipt_ret'] || r['sales_receipt_mod_rs'] || r['sales_receipt_add_rs']
