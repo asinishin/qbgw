@@ -352,22 +352,23 @@ class JobProcessor
 	  counters = {}
 	  qb_lines = {}
           QbSalesReceiptLine.where("qb_sales_receipt_id = #{ qb_sales_receipt.id }").each do |line|
-	    key = line.item_ref + line.class_ref + line.quantity + line.amount
+	    item_service = QbItemService.where('list_id = ?', line.item_ref).first
+	    key = item_service.name + ':' + line.class_ref + ':' + line.quantity + ':' + line.amount
 	    cnt = 1
 	    cnt = counters[key] + 1 if counters[key]
 	    counters.merge!(key => cnt)
-	    qb_lines.merge!((key + cnt.to_s) => line)
+	    qb_lines.merge!((key + ':' + cnt.to_s) => line)
 	  end
 
 	  counters = {}
 	  st_lines = {}
 	  StPurchasePackage.where("sat_id = #{ purchase.sat_id }").each do |pp|
-	    item_ref = StPackage.where('sat_id = ?', pp.sat_item_id).first
-	    key = item_ref.name + pp.class_ref + pp.quantity + pp.amount
+	    package = StPackage.where('sat_id = ?', pp.sat_item_id).first
+	    key = package.name + ':' + pp.class_ref + ':' + pp.quantity + ':' + pp.amount
 	    cnt = 1
 	    cnt = counters[key] + 1 if counters[key]
 	    counters.merge!(key => cnt)
-	    st_lines.merge!((key + cnt.to_s) => pp)
+	    st_lines.merge!((key + ':' + cnt.to_s) => pp)
 	  end
 
 	  unless qb_lines.keys == st_lines.keys
