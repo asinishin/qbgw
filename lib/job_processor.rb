@@ -371,6 +371,11 @@ class JobProcessor
 	    st_lines.merge!((key + ':' + cnt.to_s) => pp)
 	  end
 
+          Rails.logger.info "Here we are qb_lines ==>"
+          Rails.logger.info qb_lines.inspect
+          Rails.logger.info "Here we are st_lines ==>"
+          Rails.logger.info st_lines.inspect
+
 	  unless qb_lines.keys == st_lines.keys
 	    bit = SalesReceiptBit.create(
 	      operation:   'upd',
