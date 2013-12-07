@@ -94,6 +94,7 @@ class JobProcessor
     when :reading_items
       # If there are no items in QB
       if r['xml_attributes']['statusCode'] == "1"
+        Rails.logger.info "Here we are catched empty itmes result"
 	JobProcessor.reading_items_end_tk
       else
 	QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
