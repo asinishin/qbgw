@@ -547,7 +547,7 @@ class JobProcessor
 	end
 	
         # Create new charges
-        (charge_refs.map { |r| r.sat_line_id } & st_lines.map { |l| l.sat_line_id }).each do |line_id|
+        (st_lines.map { |l| l.sat_line_id } - charge_refs.map { |r| r.sat_line_id }).each do |line_id|
 	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
 	  ref = ChargeRef.create(
 	    sat_id:      st_line.sat_id,
