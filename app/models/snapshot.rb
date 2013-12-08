@@ -34,7 +34,8 @@ class Snapshot < ActiveRecord::Base
       :done
     ],
     sending_sales: [
-      :reading_sales,
+      :sending_sales,
+      :reading_charges,
       :done
     ],
     reading_charges: [
@@ -43,7 +44,7 @@ class Snapshot < ActiveRecord::Base
       :done
     ],
     sending_charges: [
-      :reading_charges,
+      :sending_charges,
       :done
     ]
   }
