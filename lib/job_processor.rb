@@ -31,6 +31,7 @@ class JobProcessor
       CustomerBit.delete_all
       SalesReceiptLine.delete_all
       SalesReceiptBit.delete_all
+      ChargeBit.delete_all
 
       # Prepare iterator for reading
       QbIterator.iterator_id = nil
