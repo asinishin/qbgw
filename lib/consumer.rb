@@ -64,6 +64,8 @@ class Consumer
       unless SalesReceiptPusher.delete_receipt(sales_receipt)
 	Rails.logger.info "StPurchase Del Error: ==>#{ sales_receipt.inspect }"
       end
+    elsif sales_receipt.operation == 'pay'
+      SalesReceiptPusher.add_payment(sales_receipt)
     elsif sales_receipt.operation == 'dmp'
       SalesReceiptPusher.add_receipt(sales_receipt)
     end

@@ -73,6 +73,9 @@ class JobProcessor
       else
 	JobProcessor.wrap_request(request)
       end
+    when :reading_charges
+      JobProcessor.wrap_request(build_select_charges_request)
+    when :sending_charges
     when :done
       nil
     else
@@ -209,6 +212,44 @@ class JobProcessor
       else
 	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
       end
+    when :reading_charges
+      QbIterator.remaining_count = r['xml_attributes']['iteratorRemainingCount'].to_i
+      curr = Snapshot.current
+
+      if r['charge_ret'] && r['charge_ret'].respond_to?(:to_ary) 
+	r['charge_ret'].each do |ch| 
+	  QbCharge.create(
+	    txn_id:        ch['txn_id'],
+	    edit_sequence: ch['edit_sequence'],
+	    ref_number:    ch['ref_number'],
+	    txn_date:      ch['txn_date'],
+	    item_ref:      ch['item_ref']['full_name'],
+            quantity:      ch['quantity'],
+            amount:        ch['chamount'],
+	    class_ref:     ch['class_ref']['full_name'],
+	    snapshot_id:   curr.id
+	  )
+	end
+      elsif r['charge_ret']
+	QbCharge.create(
+	  txn_id:        r['charge_ret']['txn_id'],
+	  edit_sequence: r['charge_ret']['edit_sequence'],
+	  ref_number:    r['charge_ret']['ref_number'],
+	  item_ref:      r['charge_ret']['item_ref']['full_name'],
+	  txn_date:      r['charge_ret']['txn_date'],
+	  quantity:      r['charge_ret']['quantity'],
+	  amount:        r['charge_ret']['chamount'],
+	  class_ref:     r['charge_ret']['class_ref']['full_name'],
+	  snapshot_id:   curr.id
+	)
+      end
+
+      QbIterator.busy = false
+
+      if QbIterator.remaining_count == 0
+	JobProcessor.reading_charges_end_tk
+      end
+    when :sending_charges
     else
       JobProcessor.error_tk("QB Response, unexpected status: #{ Snapshot.current_status.to_s }")
     end
@@ -336,7 +377,7 @@ class JobProcessor
       # Prepare Delta Queue for Sales
       snapshot = Snapshot.current
 
-      StPurchase.order('sat_id').each do |purchase|
+      StPurchase.where('is_cashed').order('sat_id').each do |purchase|
         qb_sales_receipt = nil
 
 	sales_receipt_ref = SalesReceiptRef.where("sat_id = #{ purchase.sat_id }").first
@@ -457,6 +498,81 @@ class JobProcessor
     end
   end
 
+  def self.reading_charges_end_tk
+    case Snapshot.current_status
+    when :reading_charges
+      # Prepare Delta Queue for Charges
+      snapshot = Snapshot.current
+
+      StPurchase.where('NOT is_cashed').order('sat_id').each do |purchase|
+        st_lines = StPurchasePackage.where("sat_id = #{ purchase.sat_id }")
+	charge_refs = ChargeRef.where("sat_id = #{ purchase.sat_id } AND qb_id IS NOT NULL")
+
+        # Update and delete charges
+	charge_refs.each do |ref|
+	  st_line = st_lines.find { |line| line.sat_line_id == ref.sat_line_id }
+	  if st_line
+	    qb_charge = QbCharge.where(
+	      "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
+	    ).first
+	    package = StPackage.where('sat_id = ?', pp.sat_item_id).first
+
+	    # Update line
+	    unless st_line.quantity.to_d.to_s == qb_charge.quantity.to_d.to_s && \
+	           st_line.amount == qb_charge.amount && package.name == qb_charge.item_ref
+	      ChargeBit.create(
+		operation:   'upd',
+		customer_id: purchase.sat_customer_id,
+		ref_number:  purchase.ref_number + ':' + st_line.sat_line_id.to_s,
+		txn_date:    purchase.txn_date,
+		item_id:     st_line.sat_item_id,
+		quantity:    st_line.quantity,
+		amount:      st_line.amount,
+		charge_ref_id: ref.id
+	      )
+	    end
+	  else
+	    # Delete line
+	    ChargeBit.create(
+	      operation:   'del',
+	      customer_id: purchase.sat_customer_id,
+	      ref_number:  purchase.ref_number,
+	      txn_date:    purchase.txn_date,
+	      item_id:     1,
+	      quantity:    "0",
+	      amount:      "0.00",
+	      charge_ref_id: ref.id
+	    )
+	  end
+	end
+	
+        # Create new charges
+        (charge_refs.map { |r| r.sat_line_id } & st_lines.map { |l| l.sat_line_id }).each do |line_id|
+	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
+	  ref = ChargeRef.create(
+	    sat_id:      st_line.sat_id,
+	    sat_line_id: st_line.sat_line_id
+	  )
+
+	  ChargeBit.create(
+	    operation:   'add',
+	    customer_id: purchase.sat_customer_id,
+	    ref_number:  purchase.ref_number + ':' + st_line.sat_line_id.to_s,
+	    txn_date:    purchase.txn_date,
+	    item_id:     st_line.sat_item_id,
+	    quantity:    st_line.quantity,
+	    amount:      st_line.amount,
+	    charge_ref_id: ref.id
+	  )
+	end
+      end
+
+      Snapshot.move_to(:sending_charges)
+    else
+      JobProcessor.error_tk("QB reading Charges, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  end
+
   def self.error_tk(err_msg)
     Rails.logger.info(err_msg)
     
@@ -564,6 +680,25 @@ class JobProcessor
 	},
 	:include_line_items => 'true',
 	:owner_id => 0
+      }
+    }
+  end
+
+  def self.build_select_charges_request
+    return nil if JobProcessor.iterator_not_ready?
+
+    snapshot = Snapshot.current
+
+    attrs = JobProcessor.prepare_iterator
+
+    {
+      :charge_query_rq => {
+	:xml_attributes => attrs,
+	:max_returned => 20,
+	:txn_date_range_filter => {
+	  :from_txn_date => snapshot.date_from.to_s,
+	  :to_txn_date   => snapshot.date_to.to_s
+	}
       }
     }
   end
