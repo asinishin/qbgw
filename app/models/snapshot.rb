@@ -36,6 +36,15 @@ class Snapshot < ActiveRecord::Base
     sending_sales: [
       :reading_sales,
       :done
+    ],
+    reading_charges: [
+      :reading_charges,
+      :sending_charges,
+      :done
+    ],
+    sending_charges: [
+      :reading_charges,
+      :done
     ]
   }
 
