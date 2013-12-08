@@ -7,6 +7,7 @@ class SalesReceiptLinePusher
       StPurchasePackage.create(
         sat_line_id: receipt_line.sat_line_id,
         sat_id:      receipt_line.sat_id,
+	txn_date:    receipt_line.txn_date,
         sat_item_id: receipt_line.sat_item_id,
         quantity:    receipt_line.quantity,
         amount:      receipt_line.amount,

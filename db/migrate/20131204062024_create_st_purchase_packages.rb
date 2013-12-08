@@ -4,6 +4,7 @@ class CreateStPurchasePackages < ActiveRecord::Migration
       t.integer :sat_line_id, null: false
       t.string  :qb_txn_line_id
       t.integer :sat_id,      null: false
+      t.string  :txn_date,    null: false
       t.integer :sat_item_id, null: false
       t.string  :qb_item_ref
       t.string  :quantity,    null: false

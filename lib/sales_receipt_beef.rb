@@ -4,11 +4,12 @@ class SalesReceiptLineBeef
   # Required
   required :operation,   :string, 1    
   required :sat_id,      :int32,  2
-  required :sat_line_id, :int32,  3
-  required :sat_item_id, :int32,  4
-  required :quantity,    :string, 5
-  required :amount,      :string, 6 
-  required :class_ref,   :string, 7
+  required :txn_date,    :string, 3
+  required :sat_line_id, :int32,  4
+  required :sat_item_id, :int32,  5
+  required :quantity,    :string, 6
+  required :amount,      :string, 7 
+  required :class_ref,   :string, 8
 end
 
 class SalesReceiptBeef

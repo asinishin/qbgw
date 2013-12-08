@@ -504,12 +504,24 @@ class JobProcessor
       # Prepare Delta Queue for Charges
       snapshot = Snapshot.current
 
-      StPurchase.where('NOT is_cashed').order('sat_id').each do |purchase|
-        st_lines = StPurchasePackage.where("sat_id = #{ purchase.sat_id }")
+      StPurchase.where(
+	%Q{ NOT st_purchases.is_cashed AND EXISTS
+          (SELECT 'x' FROM st_purchase_packages pp
+	  WHERE pp.sat_id = st_purchases.sat_id AND
+	    pp.txn_date between ? AND ?
+	)}.squish, snapshot.date_from, snapshot.date_to
+      ).order('st_purchases.sat_id').each do |purchase|
+        st_lines = StPurchasePackage.where(
+	  "sat_id = #{ purchase.sat_id } AND txn_date between ? AND ?",
+	  snapshot.date_from, snapshot.date_to
+	)
+	st_lines_ids = st_lines.map { |line| line.sat_line_id }
 	charge_refs = ChargeRef.where("sat_id = #{ purchase.sat_id } AND qb_id IS NOT NULL")
+	charge_refs_ids = charge_refs.map { |cr| cr.sat_line_id }
 
         # Update and delete charges
-	charge_refs.each do |ref|
+	(st_lines_ids & charge_refs_ids).each do |line_id|
+	  ref = charge_refs.find { |r| r.sat_line_id == line_id }
 	  st_line = st_lines.find { |line| line.sat_line_id == ref.sat_line_id }
 	  if st_line
 	    qb_charge = QbCharge.where(
