@@ -491,7 +491,7 @@ class JobProcessor
       # Email notification
       UserMailer.delay.completion(Snapshot.current.id)
 
-      Snapshot.move_to(:done)
+      Snapshot.move_to(:reading_charges)
       nil
     else
       JobProcessor.error_tk("QB sending Sales Receipts, unexpected status: #{ Snapshot.current_status.to_s }")
