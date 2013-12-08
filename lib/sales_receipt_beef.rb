@@ -21,4 +21,5 @@ class SalesReceiptBeef
   required :customer_id, :int32,  3
   required :ref_number,  :string, 4
   required :txn_date,    :string, 5
+  required :is_cashed,   :bool,   6
 end

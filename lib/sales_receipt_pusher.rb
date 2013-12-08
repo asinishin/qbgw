@@ -8,8 +8,24 @@ class SalesReceiptPusher
         sat_id:          sales_receipt.sat_id,
 	sat_customer_id: sales_receipt.customer_id,
 	ref_number:      sales_receipt.ref_number,
-	txn_date:        sales_receipt.txn_date
+	txn_date:        sales_receipt.txn_date,
+	is_cashed:       sales_receipt.is_cashed
       )
+    end
+  end 
+
+  def self.add_payment(sales_receipt)
+    receipt = StPurchase.where('sat_id = ?', sales_receipt.sat_id).first
+    if receipt
+      receipt.update(
+        sat_id:          sales_receipt.sat_id,
+	sat_customer_id: sales_receipt.customer_id,
+	ref_number:      sales_receipt.ref_number,
+	txn_date:        sales_receipt.txn_date,
+	is_cashed:       sales_receipt.is_cashed
+      )
+    else
+      false
     end
   end 
 
