@@ -533,7 +533,7 @@ class JobProcessor
 	      ChargeBit.create(
 		operation:   'upd',
 		customer_id: purchase.sat_customer_id,
-		ref_number:  purchase.ref_number + ':' + st_line.sat_line_id.to_s,
+		ref_number:  purchase.ref_number,
 		txn_date:    st_line.txn_date,
 		item_id:     st_line.sat_item_id,
 		quantity:    st_line.quantity,
@@ -569,7 +569,7 @@ class JobProcessor
 	  ChargeBit.create(
 	    operation:   'add',
 	    customer_id: purchase.sat_customer_id,
-	    ref_number:  purchase.ref_number + ':' + st_line.sat_line_id.to_s,
+	    ref_number:  purchase.ref_number,
 	    txn_date:    st_line.txn_date,
 	    item_id:     st_line.sat_item_id,
 	    quantity:    st_line.quantity,
