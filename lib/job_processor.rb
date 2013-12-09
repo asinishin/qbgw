@@ -984,7 +984,7 @@ class JobProcessor
 	  item_ref = item.qb_id if item
 	  {
 	    :xml_attributes => { "requestID" => delta.id },
-	    :sales_receipt_add => {
+	    :charge_add => {
 	      :customer_ref => { list_id: customer_ref },
 	      :ref_number => delta.ref_number,
 	      :txn_date   => delta.txn_date,
