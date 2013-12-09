@@ -532,8 +532,8 @@ class JobProcessor
 
         # Update and delete charges
 	(st_lines_ids & charge_refs_ids).each do |line_id|
-	  ref = charge_refs.find { |r| r.sat_line_id == line_id }
-	  st_line = st_lines.find { |line| line.sat_line_id == ref.sat_line_id }
+	  charge_ref = charge_refs.find { |r| r.sat_line_id == line_id }
+	  st_line = st_lines.find { |line| line.sat_line_id == charge_ref.sat_line_id }
 	  if st_line
 	    qb_charge = QbCharge.where(
 	      "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
@@ -552,7 +552,7 @@ class JobProcessor
 		quantity:    st_line.quantity,
 		amount:      st_line.amount,
 		class_ref:   st_line.class_ref,
-		charge_ref_id: ref.id
+		charge_ref_id: charge_ref.id
 	      )
 	    end
 	  else
@@ -566,7 +566,7 @@ class JobProcessor
 	      quantity:    "0",
 	      amount:      "0.00",
 	      class_ref:   "Dummy",
-	      charge_ref_id: ref.id
+	      charge_ref_id: charge_ref.id
 	    )
 	  end
 	end
@@ -574,7 +574,7 @@ class JobProcessor
         # Create new charges
         (st_lines.map { |l| l.sat_line_id } - charge_refs.map { |r| r.sat_line_id }).each do |line_id|
 	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
-	  ref = ChargeRef.create(
+	  charge_ref = ChargeRef.create(
 	    sat_id:      st_line.sat_id,
 	    sat_line_id: st_line.sat_line_id
 	  )
@@ -588,7 +588,7 @@ class JobProcessor
 	    quantity:    st_line.quantity,
 	    amount:      st_line.amount,
 	    class_ref:   st_line.class_ref,
-	    charge_ref_id: ref.id
+	    charge_ref_id: charge_ref.id
 	  )
 	end
       end
