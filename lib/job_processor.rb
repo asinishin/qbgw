@@ -613,15 +613,16 @@ class JobProcessor
   end
 
   def self.error_tk(err_msg)
-    @@errors_number += 1
-    Rails.logger.info(err_msg)
-    
-    if @@errors_number < 2
+    if @@errors_number == 0 && err_msg != 'The request has not been processed.'
+      @@errors_number += 1
+
       # Email notification
       UserMailer.delay.failure(Snapshot.current.id, err_msg)
-
-      Snapshot.move_to(:done)
     end
+
+    Rails.logger.info(err_msg)
+
+    Snapshot.move_to(:done)
     nil
   end
 
