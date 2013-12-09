@@ -11,6 +11,7 @@ class CreateChargeBits < ActiveRecord::Migration
       t.integer :item_id
       t.string  :quantity
       t.string  :amount
+      t.string  :class_ref
       t.integer :charge_ref_id, null: false
 
       t.timestamps

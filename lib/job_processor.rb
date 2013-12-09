@@ -1,6 +1,7 @@
 require 'item_service_puller'
 require 'customer_puller'
 require 'sales_receipt_puller'
+require 'charge_puller'
 require 'qb_iterator'
 
 class JobProcessor
@@ -70,13 +71,23 @@ class JobProcessor
       request = JobProcessor.build_sales_request
 
       if request.size == 0
-        JobProcessor.sending_sales_end_tk
+	# Prepare iterator for reading
+	QbIterator.iterator_id = nil
+        Snapshot.move_to(:reading_charges)
+	JobProcessor.qb_tick_tk
       else
 	JobProcessor.wrap_request(request)
       end
     when :reading_charges
       JobProcessor.wrap_request(build_select_charges_request)
     when :sending_charges
+      request = JobProcessor.build_charges_request
+
+      if request.size == 0
+        JobProcessor.sending_charges_end_tk
+      else
+	JobProcessor.wrap_request(request)
+      end
     when :done
       nil
     else
@@ -485,20 +496,6 @@ class JobProcessor
     end
   end
 
-  def self.sending_sales_end_tk
-    case Snapshot.current_status
-    when :sending_sales
-
-      # Email notification
-      UserMailer.delay.completion(Snapshot.current.id)
-
-      Snapshot.move_to(:reading_charges)
-      nil
-    else
-      JobProcessor.error_tk("QB sending Sales Receipts, unexpected status: #{ Snapshot.current_status.to_s }")
-    end
-  end
-
   def self.reading_charges_end_tk
     case Snapshot.current_status
     when :reading_charges
@@ -530,7 +527,7 @@ class JobProcessor
 	    ).first
 	    package = StPackage.where('sat_id = ?', pp.sat_item_id).first
 
-	    # Update line
+	    # Update line, will I have update?
 	    unless st_line.quantity.to_d.to_s == qb_charge.quantity.to_d.to_s && \
 	           st_line.amount == qb_charge.amount && package.name == qb_charge.item_ref
 	      ChargeBit.create(
@@ -541,6 +538,7 @@ class JobProcessor
 		item_id:     st_line.sat_item_id,
 		quantity:    st_line.quantity,
 		amount:      st_line.amount,
+		class_ref:   st_line.class_ref,
 		charge_ref_id: ref.id
 	      )
 	    end
@@ -554,6 +552,7 @@ class JobProcessor
 	      item_id:     1,
 	      quantity:    "0",
 	      amount:      "0.00",
+	      class_ref:   "Dummy",
 	      charge_ref_id: ref.id
 	    )
 	  end
@@ -575,6 +574,7 @@ class JobProcessor
 	    item_id:     st_line.sat_item_id,
 	    quantity:    st_line.quantity,
 	    amount:      st_line.amount,
+	    class_ref:   st_line.class_ref,
 	    charge_ref_id: ref.id
 	  )
 	end
@@ -583,6 +583,20 @@ class JobProcessor
       Snapshot.move_to(:sending_charges)
     else
       JobProcessor.error_tk("QB reading Charges, unexpected status: #{ Snapshot.current_status.to_s }")
+    end
+  end
+
+  def self.sending_charges_end_tk
+    case Snapshot.current_status
+    when :sending_charges
+
+      # Email notification
+      UserMailer.delay.completion(Snapshot.current.id)
+
+      Snapshot.move_to(:done)
+      nil
+    else
+      JobProcessor.error_tk("QB sending Charges, unexpected status: #{ Snapshot.current_status.to_s }")
     end
   end
 
@@ -902,6 +916,82 @@ class JobProcessor
 		  :class_ref => { full_name: line.class_ref }
 		}
 	      end
+	    }
+	  }
+	end
+      )
+    end
+    request
+  end
+
+  def self.build_charges_request
+    bits = []
+    20.times.each do
+      delta = ChargePuller.next_bit
+      break if delta.nil?
+
+      bits << delta
+    end
+
+    if bits.size == 0
+      return {}
+    end
+
+    request = {}
+    dels = bits.select { |v| v.operation == 'del' }
+    if dels.size > 0
+      request.merge!( 
+	:txn_del_rq => dels.map do |delta|
+	  {
+	    :xml_attributes => { "requestID" => delta.id },
+	    :txn_del_type   => "Charge",
+	    :txn_id => delta.charge_ref.qb_id
+	  }
+	end 
+      )
+    end
+
+    # Will I have update? Not sure!
+    upds = bits.select { |v| v.operation == 'upd' }
+    if upds.size > 0
+      request.merge!( 
+	:charge_mod_rq => upds.map do |delta|
+	  item = ItemServiceRef.where("sat_id = #{ delta.item_id }").first
+	  item_ref = item.qb_id if item
+	  {
+	    :xml_attributes => { "requestID" => delta.id },
+	    :charge_mod => {
+	      :txn_id        => delta.charge_ref.qb_id,
+	      :edit_sequence => delta.charge_ref.edit_sequence,
+	      :item_ref    => { list_id: item_ref },
+	      :quantity    => delta.quantity,
+	      :amount      => delta.amount,
+	      :class_ref   => { full_name: delta.class_ref },
+	      :txn_line_id => delta.txn_line_id
+	    }
+	  }
+	end 
+      )
+    end
+
+    news = bits.select { |v| v.operation == 'add' }
+    if news.size > 0
+      request.merge!( 
+	:charge_add_rq => news.map do |delta|
+	  customer = CustomerRef.where("sat_id = #{ delta.customer_id }").first
+	  customer_ref = customer.qb_id if customer
+	  item = ItemServiceRef.where("sat_id = #{ delta.item_id }").first
+	  item_ref = item.qb_id if item
+	  {
+	    :xml_attributes => { "requestID" => delta.id },
+	    :sales_receipt_add => {
+	      :customer_ref => { list_id: customer_ref },
+	      :ref_number => delta.ref_number,
+	      :txn_date   => delta.txn_date,
+	      :item_ref  => { list_id: item_ref },
+	      :quantity  => delta.quantity,
+	      :amount    => delta.amount,
+	      :class_ref => { full_name: delta.class_ref }
 	    }
 	  }
 	end
