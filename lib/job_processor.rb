@@ -538,7 +538,7 @@ class JobProcessor
 	    qb_charge = QbCharge.where(
 	      "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
 	    ).first
-	    package = StPackage.where('sat_id = ?', pp.sat_item_id).first
+	    package = StPackage.where('sat_id = ?', st_line.sat_item_id).first
 
 	    # Update line, will I have update?
 	    unless st_line.quantity.to_d.to_s == qb_charge.quantity.to_d.to_s && \
