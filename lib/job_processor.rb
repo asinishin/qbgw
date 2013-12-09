@@ -262,6 +262,16 @@ class JobProcessor
 	JobProcessor.reading_charges_end_tk
       end
     when :sending_charges
+      if r['charge_ret'] || r['charge_mod_rs'] || r['charge_add_rs']
+        JobProcessor.process_charges_response(r)
+      # If there are no receipts in QB
+      elsif r['xml_attributes']['statusCode'] == "1"
+	# Just ignore this error
+      else
+	JobProcessor.error_tk("Unexpected QB Response: #{ r.inspect }")
+      end
+    when :done
+      # Nothing to do...
     else
       JobProcessor.error_tk("QB Response, unexpected status: #{ Snapshot.current_status.to_s }")
     end
@@ -1172,6 +1182,69 @@ class JobProcessor
     # Single request case
     if r['sales_receipt_ret'] && r['xml_attributes']['requestID']
       JobProcessor.process_sales_response_item r
+    end
+  end
+
+  def self.process_charges_response_item(r)
+    delta = nil
+    charge_ref = nil
+    if r['xml_attributes']['requestID']
+      delta = ChargeBit.where(
+	"id = #{ r['xml_attributes']['requestID'] } AND status = 'work'"
+      ).first
+      charge_ref = delta.charge_ref if delta
+    end
+    if delta && r['charge_ret'] && r['charge_ret']['edit_sequence']
+      edit_sequence = r['charge_ret']['edit_sequence']
+      ChargeRef.update_all(
+	"edit_sequence = #{ edit_sequence }",
+	"id = #{ charge_ref.id } AND (edit_sequence < #{ edit_sequence } OR edit_sequence IS NULL)"
+      )
+    end
+    if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'add'
+      charge_ref.update_attribute(:qb_id, r['charge_ret']['txn_id'])
+    end
+    if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'del'
+      charge_ref.update_attributes(qb_id: nil, edit_sequence: nil)
+    end
+    if r['xml_attributes']['statusCode'] != '0'
+      p_no = ""
+      if delta
+	p_no = " Pruchase: #" + delta.ref_number
+	ChargePuller.reset(delta.id)
+      end
+      JobProcessor.error_tk(QB_ERROR + r.inspect + p_no)
+    else
+      ChargePuller.done(delta.id) if delta
+    end
+    # I dont understand why it is double shooting responses.
+    # Still I comment this error for now.
+    #if delta.nil?
+    #  Rails.logger.info "Error: Quickbooks request is not found ==>"
+    #  Rails.logger.info r.inspect
+    #end
+  end
+
+  def self.process_charges_response(r)
+    # TxnDelRs array case 
+    if r['txn_del_rs'].respond_to?(:to_ary)
+      r['txn_del_rs'].each{ |item| JobProcessor.process_charges_response_item item }
+    # Or one item
+    elsif r['txn_del_rs']
+      JobProcessor.process_charges_response_item r['txn_del_rs']
+    end
+
+    # SalesReceiptAddRs array case
+    if r['charge_add_rs'].respond_to?(:to_ary)
+      r['charge_add_rs'].each{ |item| JobProcessor.process_charges_response_item item }
+    # Or one item
+    elsif r['charge_add_rs']
+      JobProcessor.process_charges_response_item r['charge_add_rs']
+    end
+
+    # Single request case
+    if r['charge_ret'] && r['xml_attributes']['requestID']
+      JobProcessor.process_charges_response_item r
     end
   end
 
