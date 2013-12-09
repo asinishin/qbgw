@@ -10,6 +10,8 @@ class JobProcessor
   QB_ERROR    = "Quickbooks returned an error:\n"
 
   def self.start
+    @@errors_number = 0
+
     QBWC.add_job(:qb_exchange) do
       JobProcessor.qb_tick_tk
     end
@@ -611,12 +613,15 @@ class JobProcessor
   end
 
   def self.error_tk(err_msg)
+    @@errors_number += 1
     Rails.logger.info(err_msg)
     
-    # Email notification
-    UserMailer.delay.failure(Snapshot.current.id, err_msg)
+    if @@errors_number < 2
+      # Email notification
+      UserMailer.delay.failure(Snapshot.current.id, err_msg)
 
-    Snapshot.move_to(:done)
+      Snapshot.move_to(:done)
+    end
     nil
   end
 
