@@ -983,8 +983,7 @@ class JobProcessor
 	      :item_ref    => { list_id: item_ref },
 	      :quantity    => delta.quantity,
 	      :amount      => delta.amount,
-	      :class_ref   => { full_name: delta.class_ref },
-	      :txn_line_id => delta.txn_line_id
+	      :class_ref   => { full_name: delta.class_ref }
 	    }
 	  }
 	end 
