@@ -10,8 +10,6 @@ class JobProcessor
   QB_ERROR    = "Quickbooks returned an error:\n"
 
   def self.start
-    @@errors_number = 0
-
     QBWC.add_job(:qb_exchange) do
       JobProcessor.qb_tick_tk
     end
@@ -29,6 +27,9 @@ class JobProcessor
   def self.qb_tick_tk
     case Snapshot.current_status
     when :start
+      # Reset errors
+      @@errors_number = 0
+
       # Clean up queues
       ItemServiceBit.delete_all
       CustomerBit.delete_all
