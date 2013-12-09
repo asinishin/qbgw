@@ -533,7 +533,7 @@ class JobProcessor
         # Update and delete charges
 	(st_lines_ids & charge_refs_ids).each do |line_id|
 	  charge_ref = charge_refs.find { |r| r.sat_line_id == line_id }
-	  st_line = st_lines.find { |line| line.sat_line_id == charge_ref.sat_line_id }
+	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
 	  if st_line
 	    qb_charge = QbCharge.where(
 	      "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
@@ -543,6 +543,11 @@ class JobProcessor
 	    # Update line, will I have update?
 	    unless st_line.quantity.to_d.to_s == qb_charge.quantity.to_d.to_s && \
 	           st_line.amount == qb_charge.amount && package.name == qb_charge.item_ref
+
+              Rails.logger.info "Here we are updating charge ==>"
+              Rails.logger.info st_line.inspect
+              Rails.logger.info qb_charge.inspect
+
 	      ChargeBit.create(
 		operation:   'upd',
 		customer_id: purchase.sat_customer_id,
