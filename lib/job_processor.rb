@@ -7,7 +7,7 @@ require 'qb_iterator'
 class JobProcessor
 
   FATAL_ERROR = "We are sorry, our server has got a problem. Please contact us and we will fix it shortly."
-  QB_EROOR    = "Error: Quickbooks returned an error ==>\n"
+  QB_ERROR    = "Quickbooks returned an error:\n"
 
   def self.start
     QBWC.add_job(:qb_exchange) do
