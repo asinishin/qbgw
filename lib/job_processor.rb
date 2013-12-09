@@ -240,7 +240,7 @@ class JobProcessor
 	    txn_date:      ch['txn_date'],
 	    item_ref:      ch['item_ref']['full_name'],
             quantity:      ch['quantity'],
-            amount:        ch['chamount'],
+            amount:        ch['amount'],
 	    class_ref:     ch['class_ref']['full_name'],
 	    snapshot_id:   curr.id
 	  )
@@ -253,7 +253,7 @@ class JobProcessor
 	  item_ref:      r['charge_ret']['item_ref']['full_name'],
 	  txn_date:      r['charge_ret']['txn_date'],
 	  quantity:      r['charge_ret']['quantity'],
-	  amount:        r['charge_ret']['chamount'],
+	  amount:        r['charge_ret']['amount'],
 	  class_ref:     r['charge_ret']['class_ref']['full_name'],
 	  snapshot_id:   curr.id
 	)
