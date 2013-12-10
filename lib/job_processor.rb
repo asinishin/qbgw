@@ -27,9 +27,6 @@ class JobProcessor
   def self.qb_tick_tk
     case Snapshot.current_status
     when :start
-      # Reset errors
-      @@errors_number = 0
-
       # Clean up queues
       ItemServiceBit.delete_all
       CustomerBit.delete_all
@@ -623,9 +620,7 @@ class JobProcessor
   end
 
   def self.error_tk(err_msg)
-    if @@errors_number == 0 && err_msg != 'The request has not been processed.'
-      @@errors_number += 1
-
+    if err_msg != 'The request has not been processed.'
       # Email notification
       UserMailer.delay.failure(Snapshot.current.id, err_msg)
     end
