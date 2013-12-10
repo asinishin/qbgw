@@ -620,7 +620,7 @@ class JobProcessor
   end
 
   def self.error_tk(err_msg)
-    if err_msg != 'The request has not been processed.'
+    unless err_msg.include?('The request has not been processed')
       # Email notification
       UserMailer.delay.failure(Snapshot.current.id, err_msg)
     end
