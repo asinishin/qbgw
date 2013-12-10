@@ -17,7 +17,7 @@ Statment Charges
 Added:
 </td>
 <td>
-<%= ChargeBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'add').count.to_s %>
+<%= ChargeBit.where("operation = ?", 'add').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -25,7 +25,7 @@ Added:
 Deleted: 
 </td>
 <td>
-<%= ChargeBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'del').count.to_s %>
+<%= ChargeBit.where("operation = ?", 'del').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -33,7 +33,7 @@ Deleted:
 Updated: 
 </td>
 <td>
-<%= ChargeBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'upd').count.to_s %>
+<%= ChargeBit.where("operation = ?", 'upd').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -46,7 +46,7 @@ Sales Receipts
 Added:
 </td>
 <td>
-<%= SalesReceiptBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'add').count.to_s %>
+<%= SalesReceiptBit.where("operation = ?", 'add').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -54,7 +54,7 @@ Added:
 Deleted: 
 </td>
 <td>
-<%= SalesReceiptBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'del').count.to_s %>
+<%= SalesReceiptBit.where("operation = ?", 'del').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -62,7 +62,7 @@ Deleted:
 Updated: 
 </td>
 <td>
-<%= SalesReceiptBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'upd').count.to_s %>
+<%= SalesReceiptBit.where("operation = ?", 'upd').count.to_s %>
 </td>
 </tr>
 <td colspan='2'>
@@ -74,7 +74,7 @@ Item List
 Added:
 </td>
 <td>
-<%= ItemServiceBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'add').count.to_s %>
+<%= ItemServiceBit.where("operation = ?", 'add').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -82,7 +82,7 @@ Added:
 Deleted: 
 </td>
 <td>
-<%= ItemServiceBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'del').count.to_s %>
+<%= ItemServiceBit.where("operation = ?", 'del').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -90,7 +90,7 @@ Deleted:
 Updated: 
 </td>
 <td>
-<%= ItemServiceBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'upd').count.to_s %>
+<%= ItemServiceBit.where("operation = ?", 'upd').count.to_s %>
 </td>
 </tr>
 <td colspan='2'>
@@ -102,7 +102,7 @@ Customers
 Added:
 </td>
 <td>
-<%= CustomerBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'add').count.to_s %>
+<%= CustomerBit.where("operation = ?", 'add').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -110,7 +110,7 @@ Added:
 Deleted: 
 </td>
 <td>
-<%= CustomerBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'del').count.to_s %>
+<%= CustomerBit.where("operation = ?", 'del').count.to_s %>
 </td>
 </tr>
 <tr>
@@ -118,7 +118,7 @@ Deleted:
 Updated: 
 </td>
 <td>
-<%= CustomerBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'upd').count.to_s %>
+<%= CustomerBit.where("operation = ?", 'upd').count.to_s %>
 </td>
 </tr>
 </table>
