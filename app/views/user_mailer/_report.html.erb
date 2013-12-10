@@ -1,0 +1,125 @@
+<br/>
+<br/>
+Exchange period:
+<br/>
+<br/>
+From <%= snapshot.date_from %> to <%= snapshot.date_to %>
+<br/>
+<br/>
+<table>
+<tr>
+<td colspan='2'>
+Statment Charges
+</td>
+</tr>
+<tr>
+<td>
+Added:
+</td>
+<td>
+<%= ChargeBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'add').count.to_s %>
+</td>
+</tr>
+<tr>
+<td>
+Deleted: 
+</td>
+<td>
+<%= ChargeBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'del').count.to_s %>
+</td>
+</tr>
+<tr>
+<td>
+Updated: 
+</td>
+<td>
+<%= ChargeBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'upd').count.to_s %>
+</td>
+</tr>
+<tr>
+<td colspan='2'>
+Sales Receipts
+</td>
+</tr>
+<tr>
+<td>
+Added:
+</td>
+<td>
+<%= SalesReceiptBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'add').count.to_s %>
+</td>
+</tr>
+<tr>
+<td>
+Deleted: 
+</td>
+<td>
+<%= SalesReceiptBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'del').count.to_s %>
+</td>
+</tr>
+<tr>
+<td>
+Updated: 
+</td>
+<td>
+<%= SalesReceiptBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'upd').count.to_s %>
+</td>
+</tr>
+<td colspan='2'>
+Item List
+</td>
+</tr>
+<tr>
+<td>
+Added:
+</td>
+<td>
+<%= ItemServiceBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'add').count.to_s %>
+</td>
+</tr>
+<tr>
+<td>
+Deleted: 
+</td>
+<td>
+<%= ItemServiceBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'del').count.to_s %>
+</td>
+</tr>
+<tr>
+<td>
+Updated: 
+</td>
+<td>
+<%= ItemServiceBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'upd').count.to_s %>
+</td>
+</tr>
+<td colspan='2'>
+Customers
+</td>
+</tr>
+<tr>
+<td>
+Added:
+</td>
+<td>
+<%= CustomerBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'add').count.to_s %>
+</td>
+</tr>
+<tr>
+<td>
+Deleted: 
+</td>
+<td>
+<%= CustomerBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'del').count.to_s %>
+</td>
+</tr>
+<tr>
+<td>
+Updated: 
+</td>
+<td>
+<%= CustomerBit.where("snapshot_id = ? AND operation = ?", snapshot.id, 'upd').count.to_s %>
+</td>
+</tr>
+</table>
+<br/>

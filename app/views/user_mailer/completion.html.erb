@@ -1,7 +1,3 @@
 QuickBooks exchange has been successfuly completed for period:
-<br/>
-<br/>
-<%= @snapshot.date_from %> - <%= @snapshot.date_to %>
-<br/>
-<br/>
-Initial data setup option: Off;
+
+<%= render 'report', :snapshot => @snapshot %>
