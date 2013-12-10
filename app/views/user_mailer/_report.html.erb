@@ -1,125 +1,133 @@
 <br/>
 <br/>
-Exchange period:
-<br/>
-<br/>
-From <%= snapshot.date_from %> to <%= snapshot.date_to %>
+from <%= snapshot.date_from %> to <%= snapshot.date_to %>
 <br/>
 <br/>
 <table>
 <tr>
-<td colspan='2'>
-Statment Charges
-</td>
+  <td colspan='2'>
+    Statment Charges
+  </td>
 </tr>
 <tr>
-<td>
-Added:
-</td>
-<td>
-<%= ChargeBit.where("operation = ?", 'add').count.to_s %>
-</td>
+  <td>
+    Added:
+  </td>
+  <td>
+    <%= ChargeBit.where("operation = ?", 'add').count.to_s %>
+  </td>
 </tr>
 <tr>
-<td>
-Deleted: 
-</td>
-<td>
-<%= ChargeBit.where("operation = ?", 'del').count.to_s %>
-</td>
+  <td>
+    Deleted: 
+  </td>
+  <td>
+    <%= ChargeBit.where("operation = ?", 'del').count.to_s %>
+  </td>
 </tr>
 <tr>
-<td>
-Updated: 
-</td>
-<td>
-<%= ChargeBit.where("operation = ?", 'upd').count.to_s %>
-</td>
+  <td>
+    Updated: 
+  </td>
+  <td>
+    <%= ChargeBit.where("operation = ?", 'upd').count.to_s %>
+  </td>
 </tr>
 <tr>
-<td colspan='2'>
-Sales Receipts
-</td>
+  <td colspan='2'>&nbsp;</td>
 </tr>
 <tr>
-<td>
-Added:
-</td>
-<td>
-<%= SalesReceiptBit.where("operation = ?", 'add').count.to_s %>
-</td>
+  <td colspan='2'>
+    Sales Receipts
+  </td>
 </tr>
 <tr>
-<td>
-Deleted: 
-</td>
-<td>
-<%= SalesReceiptBit.where("operation = ?", 'del').count.to_s %>
-</td>
+  <td>
+    Added:
+  </td>
+  <td>
+    <%= SalesReceiptBit.where("operation = ?", 'add').count.to_s %>
+  </td>
 </tr>
 <tr>
-<td>
-Updated: 
-</td>
-<td>
-<%= SalesReceiptBit.where("operation = ?", 'upd').count.to_s %>
-</td>
-</tr>
-<td colspan='2'>
-Item List
-</td>
+  <td>
+    Deleted: 
+  </td>
+  <td>
+    <%= SalesReceiptBit.where("operation = ?", 'del').count.to_s %>
+  </td>
 </tr>
 <tr>
-<td>
-Added:
-</td>
-<td>
-<%= ItemServiceBit.where("operation = ?", 'add').count.to_s %>
-</td>
+  <td>
+    Updated: 
+  </td>
+  <td>
+    <%= SalesReceiptBit.where("operation = ?", 'upd').count.to_s %>
+  </td>
 </tr>
 <tr>
-<td>
-Deleted: 
-</td>
-<td>
-<%= ItemServiceBit.where("operation = ?", 'del').count.to_s %>
-</td>
+  <td colspan='2'>&nbsp;</td>
 </tr>
 <tr>
-<td>
-Updated: 
-</td>
-<td>
-<%= ItemServiceBit.where("operation = ?", 'upd').count.to_s %>
-</td>
-</tr>
-<td colspan='2'>
-Customers
-</td>
+  <td colspan='2'>
+    Item List
+  </td>
 </tr>
 <tr>
-<td>
-Added:
-</td>
-<td>
-<%= CustomerBit.where("operation = ?", 'add').count.to_s %>
-</td>
+  <td>
+    Added:
+  </td>
+  <td>
+    <%= ItemServiceBit.where("operation = ?", 'add').count.to_s %>
+  </td>
 </tr>
 <tr>
-<td>
-Deleted: 
-</td>
-<td>
-<%= CustomerBit.where("operation = ?", 'del').count.to_s %>
-</td>
+  <td>
+    Deleted: 
+  </td>
+  <td>
+    <%= ItemServiceBit.where("operation = ?", 'del').count.to_s %>
+  </td>
 </tr>
 <tr>
-<td>
-Updated: 
-</td>
-<td>
-<%= CustomerBit.where("operation = ?", 'upd').count.to_s %>
-</td>
+  <td>
+    Updated: 
+  </td>
+  <td>
+    <%= ItemServiceBit.where("operation = ?", 'upd').count.to_s %>
+  </td>
+</tr>
+<tr>
+  <td colspan='2'>&nbsp;</td>
+</tr>
+<tr>
+  <td colspan='2'>
+    Customers
+  </td>
+</tr>
+<tr>
+  <td>
+    Added:
+  </td>
+  <td>
+    <%= CustomerBit.where("operation = ?", 'add').count.to_s %>
+  </td>
+</tr>
+<tr>
+  <td>
+    Deleted: 
+  </td>
+  <td>
+    <%= CustomerBit.where("operation = ?", 'del').count.to_s %>
+  </td>
+</tr>
+<tr>
+  <td>
+    Updated: 
+  </td>
+  <td>
+    <%= CustomerBit.where("operation = ?", 'upd').count.to_s %>
+  </td>
 </tr>
 </table>
 <br/>
