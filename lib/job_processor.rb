@@ -402,7 +402,11 @@ class JobProcessor
       # Prepare Delta Queue for Sales
       snapshot = Snapshot.current
 
-      StPurchase.where('is_cashed').order('sat_id').each do |purchase|
+      StPurchase.where(
+        'is_cashed AND txn_date between ? AND ?',
+	snapshot.from_date,
+	snapshot.to_date
+      ).order('sat_id').each do |purchase|
         qb_sales_receipt = nil
 
 	sales_receipt_ref = SalesReceiptRef.where("sat_id = #{ purchase.sat_id }").first
