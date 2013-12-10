@@ -315,12 +315,12 @@ class JobProcessor
 	  )
 
 	  unless qb_item.name == item.name && \
-	         qb_item.description == item.description && \
+	         qb_item.description == item.description.strip && \
 		 qb_item.account_ref == item.account_ref
 	    ItemServiceBit.create(
 	      operation:   'upd',
 	      name:        item.name,
-	      description: item.description,
+	      description: item.description.strip,
 	      account_ref: item.account_ref,
 	      item_service_ref_id: item_ref.id
 	    )
@@ -329,7 +329,7 @@ class JobProcessor
 	  ItemServiceBit.create(
 	    operation:   'add',
 	    name:        item.name,
-	    description: item.description,
+	    description: item.description.strip,
 	    account_ref: item.account_ref,
 	    item_service_ref_id: item_ref.id
 	  )
@@ -349,7 +349,7 @@ class JobProcessor
       snapshot = Snapshot.current
 
       StUser.order('sat_id').each do |customer|
-        full_name = customer.first_name + ' ' + customer.last_name
+        full_name = customer.first_name.strip + ' ' + customer.last_name.strip
         qb_customer = nil
 
 	customer_ref = CustomerRef.where("sat_id = #{ customer.sat_id }").first
@@ -375,16 +375,16 @@ class JobProcessor
 	  unless qb_customer.name == full_name
 	    CustomerBit.create(
 	      operation:       'upd',
-	      first_name:      customer.first_name,
-	      last_name:       customer.last_name,
+	      first_name:      customer.first_name.strip,
+	      last_name:       customer.last_name.strip,
 	      customer_ref_id: customer_ref.id
 	    )
 	  end
 	else
 	  CustomerBit.create(
 	    operation:       'add',
-	    first_name:      customer.first_name,
-	    last_name:       customer.last_name,
+	    first_name:      customer.first_name.strip,
+	    last_name:       customer.last_name.strip,
 	    customer_ref_id: customer_ref.id
 	  )
 	end
