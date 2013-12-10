@@ -834,9 +834,7 @@ class JobProcessor
 	    :customer_mod   => {
 	      :list_id       => delta.customer_ref.qb_id,
 	      :edit_sequence => delta.customer_ref.edit_sequence,
-	      :name          => delta.first_name + ' ' + delta.last_name,
-	      :first_name    => delta.first_name,
-	      :last_name     => delta.last_name
+	      :name          => delta.first_name + ' ' + delta.last_name
 	    }
 	  }
 	end 
@@ -850,9 +848,7 @@ class JobProcessor
 	  {
 	    :xml_attributes => { "requestID" => delta.id },
 	    :customer_add   => {
-	      :name       => delta.first_name + ' ' + delta.last_name,
-	      :first_name => delta.first_name,
-	      :last_name  => delta.last_name
+	      :name       => delta.first_name + ' ' + delta.last_name
 	    }
 	  }
 	end
