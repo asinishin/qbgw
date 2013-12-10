@@ -929,7 +929,7 @@ class JobProcessor
 	      :customer_ref => { list_id: customer_ref },
 	      :ref_number => delta.ref_number,
 	      :txn_date   => delta.txn_date,
-	      :deposit_to_account_ref => { full_name: delta.account_ref },
+	      :deposit_to_account_ref => { full_name: (delta.account_ref ? delta.account_ref : "Cash Charges") },
 	      :sales_receipt_line_add => lines.map do |line|
 		item = ItemServiceRef.where("sat_id = #{ line.item_id }").first
 		item_ref = item.qb_id if item
