@@ -9,7 +9,8 @@ class SalesReceiptPusher
 	sat_customer_id: sales_receipt.customer_id,
 	ref_number:      sales_receipt.ref_number,
 	txn_date:        sales_receipt.txn_date,
-	is_cashed:       sales_receipt.is_cashed
+	is_cashed:       sales_receipt.is_cashed,
+	account_ref:     sales_receipt.account_ref
       )
     end
   end 
@@ -22,7 +23,8 @@ class SalesReceiptPusher
 	sat_customer_id: sales_receipt.customer_id,
 	ref_number:      sales_receipt.ref_number,
 	txn_date:        sales_receipt.txn_date,
-	is_cashed:       sales_receipt.is_cashed
+	is_cashed:       sales_receipt.is_cashed,
+	account_ref:     sales_receipt.account_ref
       )
     else
       false

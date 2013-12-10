@@ -23,4 +23,9 @@ class SalesReceiptBeef
   required :ref_number,  :string, 4
   required :txn_date,    :string, 5
   required :is_cashed,   :bool,   6
+
+  # Optional
+  # Deposit to account
+  optional :account_ref, :string, 7
+
 end

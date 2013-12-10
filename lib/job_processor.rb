@@ -455,6 +455,7 @@ class JobProcessor
 	      customer_id: purchase.sat_customer_id,
 	      ref_number:  purchase.ref_number,
 	      txn_date:    purchase.txn_date,
+	      account_ref: purchase.account_ref,
 	      sales_receipt_ref_id: sales_receipt_ref.id
 	    )
 
@@ -488,6 +489,7 @@ class JobProcessor
 	      customer_id: purchase.sat_customer_id,
 	      ref_number:  purchase.ref_number,
 	      txn_date:    purchase.txn_date,
+	      account_ref: purchase.account_ref,
 	      sales_receipt_ref_id: sales_receipt_ref.id
 	    )
 	    purchase_packages.each do |pp|
@@ -927,6 +929,7 @@ class JobProcessor
 	      :customer_ref => { list_id: customer_ref },
 	      :ref_number => delta.ref_number,
 	      :txn_date   => delta.txn_date,
+	      :deposit_to_account_ref => { full_name: delta.account_ref },
 	      :sales_receipt_line_add => lines.map do |line|
 		item = ItemServiceRef.where("sat_id = #{ line.item_id }").first
 		item_ref = item.qb_id if item
