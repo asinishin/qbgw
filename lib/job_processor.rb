@@ -404,8 +404,8 @@ class JobProcessor
 
       StPurchase.where(
         'is_cashed AND txn_date between ? AND ?',
-	snapshot.from_date,
-	snapshot.to_date
+	snapshot.date_from,
+	snapshot.date_to
       ).order('sat_id').each do |purchase|
         qb_sales_receipt = nil
 
