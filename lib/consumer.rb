@@ -55,7 +55,7 @@ class Consumer
 
   def self.proc_sales_receipt(delivery_info, metadata, payload)
     sales_receipt = SalesReceiptBeef.decode(payload)
-    Rails.logger.info "Sales receipt pushed ==> #{ sales_receipt.inspect }"
+    Rails.logger.info "Sales receipt pushed ==> #{ sales_receipt.operation }"
     if sales_receipt.operation == 'add'
       unless SalesReceiptPusher.add_receipt(sales_receipt)
 	Rails.logger.info "StPurchase Add Error: ==>#{ sales_receipt.inspect }"

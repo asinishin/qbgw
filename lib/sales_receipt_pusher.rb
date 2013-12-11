@@ -4,9 +4,7 @@ class SalesReceiptPusher
     if StPurchase.where('sat_id = ?', sales_receipt.sat_id).first
       false
     else
-      Rails.logger.info "Here we before StPurchase ==>"
-      Rails.logger.info sales_receipt.account_ref
-      p = StPurchase.create(
+      StPurchase.create(
         sat_id:          sales_receipt.sat_id,
 	sat_customer_id: sales_receipt.customer_id,
 	ref_number:      sales_receipt.ref_number,
@@ -14,8 +12,6 @@ class SalesReceiptPusher
 	is_cashed:       sales_receipt.is_cashed,
 	account_ref:     sales_receipt.account_ref
       )
-      Rails.logger.info p.inspect
-      p
     end
   end 
 
