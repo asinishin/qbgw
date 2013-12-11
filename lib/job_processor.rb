@@ -522,7 +522,7 @@ class JobProcessor
       ).order('sat_line_id')
 
       out_ids = QbCharge.select(:txn_id).where(
-        'snapshot_id = ?' snapshot.id
+        'snapshot_id = ?', snapshot.id
       ).order('txn_id')
 
       out_to_in_hash = {}
