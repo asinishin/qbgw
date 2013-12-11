@@ -602,23 +602,16 @@ class JobProcessor
 	    charge_ref_id: charge_ref.id
 	  )
 	end
-
-        # Delete charges
-        (charge_refs.map { |r| r.sat_line_id } - st_lines.map { |l| l.sat_line_id }).each do |line_id|
-	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
-	  # Delete a charge
-	  ChargeBit.create(
-	    operation:   'del',
-	    customer_id: purchase.sat_customer_id,
-	    ref_number:  purchase.ref_number,
-	    txn_date:    st_line.txn_date,
-	    item_id:     st_line.sat_item_id,
-	    quantity:    st_line.quantity,
-	    amount:      st_line.amount,
-	    class_ref:   st_line.class_ref,
-	    charge_ref_id: charge_ref.id
-	  )
-	end
+      end
+      
+      # Delete charges
+      (ChargeRef.map { |r| r.sat_line_id } - StPurchasePackage.map { |l| l.sat_line_id }).each do |line_id|
+	charge_ref = ChargeRef.where('sat_line_id = ?', line_id)
+	# Delete a charge
+	ChargeBit.create(
+	  operation:   'del',
+	  charge_ref_id: charge_ref.id
+	)
       end
 
       Snapshot.move_to(:sending_charges)
