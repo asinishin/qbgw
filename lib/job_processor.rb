@@ -346,7 +346,7 @@ class JobProcessor
       snapshot = Snapshot.current
 
       StUser.order('sat_id').each do |customer|
-        full_name = customer.first_name.strip + ' ' + customer.last_name.strip
+        full_name = customer.first_name.strip.capitalize  + ' ' + customer.last_name.strip.capitalize
         qb_customer = nil
 
 	customer_ref = CustomerRef.where("sat_id = #{ customer.sat_id }").first
@@ -372,16 +372,16 @@ class JobProcessor
 	  unless qb_customer.name == full_name
 	    CustomerBit.create(
 	      operation:       'upd',
-	      first_name:      customer.first_name.strip,
-	      last_name:       customer.last_name.strip,
+	      first_name:      customer.first_name.strip.capitalize,
+	      last_name:       customer.last_name.strip.capitalize,
 	      customer_ref_id: customer_ref.id
 	    )
 	  end
 	else
 	  CustomerBit.create(
 	    operation:       'add',
-	    first_name:      customer.first_name.strip,
-	    last_name:       customer.last_name.strip,
+	    first_name:      customer.first_name.strip.capitalize,
+	    last_name:       customer.last_name.strip.capitalize,
 	    customer_ref_id: customer_ref.id
 	  )
 	end
