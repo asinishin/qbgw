@@ -605,7 +605,10 @@ class JobProcessor
       end
       
       # Delete charges
-      (ChargeRef.map { |r| r.sat_line_id } - StPurchasePackage.map { |l| l.sat_line_id }).each do |line_id|
+      (
+        ChargeRef.order('sat_line_id').map { |r| r.sat_line_id } - 
+        StPurchasePackage.order('sat_line_id').map { |l| l.sat_line_id }
+      ).each do |line_id|
 	charge_ref = ChargeRef.where('sat_line_id = ?', line_id)
 	# Delete a charge
 	ChargeBit.create(
