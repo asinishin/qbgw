@@ -533,17 +533,19 @@ class JobProcessor
 	charge_refs = ChargeRef.where("sat_id = #{ purchase.sat_id } AND qb_id IS NOT NULL")
 	charge_refs_ids = charge_refs.map { |cr| cr.sat_line_id }
 
-        # Update and delete charges
+        # Update charges
 	(st_lines_ids & charge_refs_ids).each do |line_id|
 	  charge_ref = charge_refs.find { |r| r.sat_line_id == line_id }
 	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
-	  if st_line
-	    qb_charge = QbCharge.where(
-	      "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
-	    ).first
+
+	  qb_charge = QbCharge.where(
+	    "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
+	  ).first
+
+	  if qb_charge
 	    package = StPackage.where('sat_id = ?', st_line.sat_item_id).first
 
-	    # Update line, will I have update?
+	    # TODO: Will I realy have to update charges?
 	    unless st_line.quantity.to_d.to_s == qb_charge.quantity.to_d.to_s && \
 	           st_line.amount == qb_charge.amount && package.name == qb_charge.item_ref
 
@@ -564,16 +566,17 @@ class JobProcessor
 	      )
 	    end
 	  else
-	    # Delete line
+	    # Apparently we have old Charge deleted in QB manually
+	    # So we recreate it
 	    ChargeBit.create(
-	      operation:   'del',
+	      operation:   'add',
 	      customer_id: purchase.sat_customer_id,
 	      ref_number:  purchase.ref_number,
 	      txn_date:    st_line.txn_date,
-	      item_id:     1,
-	      quantity:    "0",
-	      amount:      "0.00",
-	      class_ref:   "Dummy",
+	      item_id:     st_line.sat_item_id,
+	      quantity:    st_line.quantity,
+	      amount:      st_line.amount,
+	      class_ref:   st_line.class_ref,
 	      charge_ref_id: charge_ref.id
 	    )
 	  end
@@ -589,6 +592,23 @@ class JobProcessor
 
 	  ChargeBit.create(
 	    operation:   'add',
+	    customer_id: purchase.sat_customer_id,
+	    ref_number:  purchase.ref_number,
+	    txn_date:    st_line.txn_date,
+	    item_id:     st_line.sat_item_id,
+	    quantity:    st_line.quantity,
+	    amount:      st_line.amount,
+	    class_ref:   st_line.class_ref,
+	    charge_ref_id: charge_ref.id
+	  )
+	end
+
+        # Delete charges
+        (charge_refs.map { |r| r.sat_line_id } - st_lines.map { |l| l.sat_line_id }).each do |line_id|
+	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
+	  # Delete a charge
+	  ChargeBit.create(
+	    operation:   'del',
 	    customer_id: purchase.sat_customer_id,
 	    ref_number:  purchase.ref_number,
 	    txn_date:    st_line.txn_date,
