@@ -610,11 +610,23 @@ class JobProcessor
         StPurchasePackage.order('sat_line_id').map { |l| l.sat_line_id }
       ).each do |line_id|
 	charge_ref = ChargeRef.where('sat_line_id = ?', line_id).first
-	# Delete a charge
-	ChargeBit.create(
-	  operation:   'del',
-	  charge_ref_id: charge_ref.id
-	)
+
+	qb_charge = nil
+	if charge_ref.qb_id
+	  qb_charge = QbCharge.where(
+	    "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
+	  ).first
+	end
+
+	if qb_charge
+	  charge_ref.update_attributes(edit_sequence: qb_charge.edit_sequence)
+
+	  # Delete a charge
+	  ChargeBit.create(
+	    operation:   'del',
+	    charge_ref_id: charge_ref.id
+	  )
+	end
       end
 
       Snapshot.move_to(:sending_charges)
