@@ -4,7 +4,9 @@ class SalesReceiptPusher
     if StPurchase.where('sat_id = ?', sales_receipt.sat_id).first
       false
     else
-      StPurchase.create(
+      Rails.logger.info "Here we before StPurchase ==>"
+      Rails.logger.info sales_receipt.account_ref
+      p = StPurchase.create(
         sat_id:          sales_receipt.sat_id,
 	sat_customer_id: sales_receipt.customer_id,
 	ref_number:      sales_receipt.ref_number,
@@ -12,13 +14,15 @@ class SalesReceiptPusher
 	is_cashed:       sales_receipt.is_cashed,
 	account_ref:     sales_receipt.account_ref
       )
+      Rails.logger.info p.inspect
+      p
     end
   end 
 
   def self.add_payment(sales_receipt)
     receipt = StPurchase.where('sat_id = ?', sales_receipt.sat_id).first
     if receipt
-      receipt.update(
+      receipt.update_attributes(
         sat_id:          sales_receipt.sat_id,
 	sat_customer_id: sales_receipt.customer_id,
 	ref_number:      sales_receipt.ref_number,
