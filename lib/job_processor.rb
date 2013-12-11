@@ -519,11 +519,11 @@ class JobProcessor
       in_ids = StPurchasePackage.select(:sat_line_id).where(
 	"txn_date between ? AND ?",
 	snapshot.date_from, snapshot.date_to
-      ).order('sat_line_id')
+      ).order('sat_line_id').map { |e| e.sat_line_id }
 
       out_ids = QbCharge.select(:txn_id).where(
         'snapshot_id = ?', snapshot.id
-      ).order('txn_id')
+      ).order('txn_id').map { |e| e.txn_id }
 
       out_to_in_hash = {}
 
