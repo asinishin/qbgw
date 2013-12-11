@@ -546,7 +546,9 @@ class JobProcessor
         unless ins.size == 0
 	  ins.map do |e|
 	    unless in_to_out_hash[e]
-	      in_to_out_hash.merge!(e => ChargeRef.where('sat_line_id = ?', e).first.qb_id)
+	      in_to_out_hash.merge!(
+	        e => ChargeRef.where('sat_line_id = ? AND qb_id IS NOT NULL', e).first.qb_id
+	      )
 	    end
 	    in_to_out_hash[e]
 	  end
