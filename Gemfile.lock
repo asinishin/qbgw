@@ -9,7 +9,7 @@ GIT
 
 GIT
   remote: git://github.com/asinishin/quickbooks_api.git
-  revision: 83a5e226253cc8b69037bd255cd6f5a8f45aaf7a
+  revision: 4999223ec4e49d047cc70677b10e96392026b585
   specs:
     quickbooks_api (0.1.7)
       activesupport
