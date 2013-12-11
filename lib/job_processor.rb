@@ -3,6 +3,7 @@ require 'customer_puller'
 require 'sales_receipt_puller'
 require 'charge_puller'
 require 'qb_iterator'
+require 'delta'
 
 class JobProcessor
 
@@ -461,22 +462,20 @@ class JobProcessor
 
 	    st_lines.keys.each do |key|
 	      if qb_lines[key].nil?
-                Rails.logger.info "Here we UPD new receipt line ==>" 
-		Rails.logger.info SalesReceiptLine.create(
+		create(
 		  txn_line_id: "-1",
 		  item_id:     st_lines[key].sat_item_id,
 		  quantity:    st_lines[key].quantity,
 		  amount:      st_lines[key].amount,
 		  class_ref:   st_lines[key].class_ref,
 		  sales_receipt_bit_id: bit.id
-		).inspect
+		)
 	      else
-                Rails.logger.info "Here we UPD keep receipt line ==>" 
-		Rails.logger.info SalesReceiptLine.create(
+		create(
 		  txn_line_id: qb_lines[key].txn_line_id,
 		  item_id:     0,
 		  sales_receipt_bit_id: bit.id
-		).inspect
+		)
 	      end
 	    end
 
@@ -493,14 +492,13 @@ class JobProcessor
 	      sales_receipt_ref_id: sales_receipt_ref.id
 	    )
 	    purchase_packages.each do |pp|
-	      Rails.logger.info "Here we ADD receipt line ==>" 
-	      Rails.logger.info SalesReceiptLine.create(
+	      create(
 		item_id:   pp.sat_item_id,
 		quantity:  pp.quantity,
 		amount:    pp.amount,
 		class_ref: pp.class_ref,
 		sales_receipt_bit_id: bit.id
-	      ).inspect
+	      )
 	    end
 	  end
 	end
@@ -517,81 +515,70 @@ class JobProcessor
     when :reading_charges
       # Prepare Delta Queue for Charges
       snapshot = Snapshot.current
+      
+      in_ids = StPurchasePackage.select(:sat_line_id).where(
+	"txn_date between ? AND ?",
+	snapshot.date_from, snapshot.date_to
+      ).order('sat_line_id')
 
-      StPurchase.where(
-	%Q{ NOT st_purchases.is_cashed AND EXISTS
-          (SELECT 'x' FROM st_purchase_packages pp
-	  WHERE pp.sat_id = st_purchases.sat_id AND
-	    pp.txn_date between ? AND ?
-	)}.squish, snapshot.date_from, snapshot.date_to
-      ).order('st_purchases.sat_id').each do |purchase|
-        st_lines = StPurchasePackage.where(
-	  "sat_id = #{ purchase.sat_id } AND txn_date between ? AND ?",
-	  snapshot.date_from, snapshot.date_to
-	)
-	st_lines_ids = st_lines.map { |line| line.sat_line_id }
-	charge_refs = ChargeRef.where("sat_id = #{ purchase.sat_id } AND qb_id IS NOT NULL")
-	charge_refs_ids = charge_refs.map { |cr| cr.sat_line_id }
+      out_ids = QbCharge.select(:txn_id).where(
+        'snapshot_id = ?' snapshot.id
+      ).order('txn_id')
 
-        # Update charges
-	(st_lines_ids & charge_refs_ids).each do |line_id|
-	  charge_ref = charge_refs.find { |r| r.sat_line_id == line_id }
-	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
+      out_to_in_hash = {}
 
-	  qb_charge = QbCharge.where(
-	    "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
-	  ).first
-
-	  if qb_charge
-	    package = StPackage.where('sat_id = ?', st_line.sat_item_id).first
-
-	    # TODO: Will I realy have to update charges?
-	    unless st_line.quantity.to_d.to_s == qb_charge.quantity.to_d.to_s && \
-	           st_line.amount == qb_charge.amount && package.name == qb_charge.item_ref
-
-              Rails.logger.info "Here we are updating charge ==>"
-              Rails.logger.info st_line.inspect
-              Rails.logger.info qb_charge.inspect
-
-	      ChargeBit.create(
-		operation:   'upd',
-		customer_id: purchase.sat_customer_id,
-		ref_number:  purchase.ref_number,
-		txn_date:    st_line.txn_date,
-		item_id:     st_line.sat_item_id,
-		quantity:    st_line.quantity,
-		amount:      st_line.amount,
-		class_ref:   st_line.class_ref,
-		charge_ref_id: charge_ref.id
-	      )
+      out_to_in = Proc.new do |outs|
+        unless outs.size == 0
+	  outs.map do |e|
+	    unless out_to_in_hash[e]
+	      out_to_in_hash.merge!(e => ChargeRef.where('qb_id = ?', e).first.sat_line_id)
 	    end
-	  else
-	    # Apparently we have old Charge deleted in QB manually
-	    # So we recreate it
-	    ChargeBit.create(
-	      operation:   'add',
-	      customer_id: purchase.sat_customer_id,
-	      ref_number:  purchase.ref_number,
-	      txn_date:    st_line.txn_date,
-	      item_id:     st_line.sat_item_id,
-	      quantity:    st_line.quantity,
-	      amount:      st_line.amount,
-	      class_ref:   st_line.class_ref,
-	      charge_ref_id: charge_ref.id
-	    )
+	    out_to_in_hash[e]
 	  end
+	else
+	  []
 	end
-	
-        # Create new charges
-        (st_lines.map { |l| l.sat_line_id } - charge_refs.map { |r| r.sat_line_id }).each do |line_id|
-	  st_line = st_lines.find { |line| line.sat_line_id == line_id }
-	  charge_ref = ChargeRef.create(
-	    sat_id:      st_line.sat_id,
-	    sat_line_id: st_line.sat_line_id
-	  )
+      end
+
+      in_to_out_hash = {}
+
+      in_to_out = Proc.new do |ins|
+        unless ins.size == 0
+	  ins.map do |e|
+	    unless in_to_out_hash[e]
+	      in_to_out_hash.merge!(e => ChargeRef.where('sat_line_id = ?', e).first.qb_id)
+	    end
+	    in_to_out_hash[e]
+	  end
+	else
+	  []
+	end
+      end
+
+      delta = Delta.new(in_ids, out_ids, in_to_out, out_to_in)
+
+      # Update charges
+      delta.update do |sat_line_id, txn_id|
+        st_line = StPurchasePackage.where('sat_line_id = ?', sat_line_id).first
+	qb_charge = QbCharge.where(
+	  'txn_id = ? AND snapshot_id = ?',
+	  txn_id, snapshot.id
+	).first
+	package = StPackage.where('sat_id = ?', st_line.sat_item_id).first
+
+	# TODO: Will I realy have to update charges?
+	unless st_line.quantity.to_d.to_s == qb_charge.quantity.to_d.to_s && \
+	       st_line.amount == qb_charge.amount && package.name == qb_charge.item_ref
+
+	  purchase   = StPurchase.where('sat_id = ?', st_line.sat_id).first
+	  charge_ref = ChargeRef.where('sat_line_id = ?', sat_line_id).first
+
+	  Rails.logger.info "Here we are updating charge ==>"
+	  Rails.logger.info st_line.inspect
+	  Rails.logger.info qb_charge.inspect
 
 	  ChargeBit.create(
-	    operation:   'add',
+	    operation:   'upd',
 	    customer_id: purchase.sat_customer_id,
 	    ref_number:  purchase.ref_number,
 	    txn_date:    st_line.txn_date,
@@ -603,30 +590,46 @@ class JobProcessor
 	  )
 	end
       end
-      
+
+      # Create new charges
+      delta.addition do |sat_line_id|
+        st_line  = StPurchasePackage.where('sat_line_id = ?', sat_line_id).first
+	purchase = StPurchase.where('sat_id = ?', st_line.sat_id).first
+
+	charge_ref = ChargeRef.create(
+	  sat_id:      st_line.sat_id,
+	  sat_line_id: st_line.sat_line_id
+	)
+
+	ChargeBit.create(
+	  operation:   'add',
+	  customer_id: purchase.sat_customer_id,
+	  ref_number:  purchase.ref_number,
+	  txn_date:    st_line.txn_date,
+	  item_id:     st_line.sat_item_id,
+	  quantity:    st_line.quantity,
+	  amount:      st_line.amount,
+	  class_ref:   st_line.class_ref,
+	  charge_ref_id: charge_ref.id
+	)
+      end
+
       # Delete charges
-      (
-        ChargeRef.order('sat_line_id').map { |r| r.sat_line_id } - 
-        StPurchasePackage.order('sat_line_id').map { |l| l.sat_line_id }
-      ).each do |line_id|
-	charge_ref = ChargeRef.where('sat_line_id = ?', line_id).first
+      delta.deletion do |txn_id|
+	charge_ref = ChargeRef.where('txn_id = ?', txn_id).first
 
-	qb_charge = nil
-	if charge_ref.qb_id
-	  qb_charge = QbCharge.where(
-	    "txn_id = '#{ charge_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
-	  ).first
-	end
+	qb_charge = QbCharge.where(
+	  'txn_id = ? AND snapshot_id = ?',
+	  txn_id, snapshot.id
+	).first
 
-	if qb_charge
-	  charge_ref.update_attributes(edit_sequence: qb_charge.edit_sequence)
+	charge_ref.update_attributes(edit_sequence: qb_charge.edit_sequence)
 
-	  # Delete a charge
-	  ChargeBit.create(
-	    operation:   'del',
-	    charge_ref_id: charge_ref.id
-	  )
-	end
+	# Delete a charge
+	ChargeBit.create(
+	  operation:   'del',
+	  charge_ref_id: charge_ref.id
+	)
       end
 
       Snapshot.move_to(:sending_charges)
@@ -1246,7 +1249,7 @@ class JobProcessor
       charge_ref.update_attribute(:qb_id, r['charge_ret']['txn_id'])
     end
     if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'del'
-      charge_ref.update_attributes(qb_id: nil, edit_sequence: nil)
+      charge_ref.destroy
     end
     if r['xml_attributes']['statusCode'] != '0'
       p_no = ""
