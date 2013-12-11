@@ -262,7 +262,7 @@ class JobProcessor
 	JobProcessor.reading_charges_end_tk
       end
     when :sending_charges
-      if r['charge_ret'] || r['charge_mod_rs'] || r['charge_add_rs']
+      if r['charge_ret'] || r['charge_mod_rs'] || r['charge_add_rs'] || r['txn_del_rs']
         JobProcessor.process_charges_response(r)
       # If there are no receipts in QB
       elsif r['xml_attributes']['statusCode'] == "1"
