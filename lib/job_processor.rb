@@ -472,7 +472,7 @@ class JobProcessor
 		line_in_to_out_hash.merge!(
 		  e => SalesReceiptLineRef.where(
 		    'sat_line_id = ? AND txn_line_id IS NOT NULL', e
-		  ).first.qb_id
+		  ).first.txn_line_id
 		)
 	      end
 	      line_in_to_out_hash[e]
@@ -482,11 +482,14 @@ class JobProcessor
 	  end
 	end
 
-        line_in_ids = StPurchasePackage.select(:sat_line_id).where('sat_id = ?', sat_id)
-	r_id = QbSalesReceipt.select(:id).where('txn_id = ?', txn_id).first
-	line_out_ids = QbSalesReceiptLine.select(
-	  :txn_line_id
-	).where('qb_sales_receipt_id = ?', r_id.id)
+        line_in_ids = StPurchasePackage.where(
+	  'sat_id = ?', sat_id
+	).map { |e| e.sat_line_id }
+
+	qb_sales_receipt = QbSalesReceipt.where(
+	  'txn_id = ? AND snapshot_id = ?', txn_id, snapshot.id
+	).first
+	line_out_ids = qb_sales_receipt.qb_sales_receipt_lines.map { |e| e.txn_line_id }
 
         line_delta = Delta.new(line_in_ids, line_out_ids, line_out_to_in, line_in_to_out)
 
