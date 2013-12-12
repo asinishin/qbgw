@@ -517,11 +517,7 @@ class JobProcessor
 
 	if addDirty
 	  line_delta.addition do |sat_line_id|
-	    line = StPurchasePackage.where('sat_line_id = ?', sat_line_id).first 
-
-	    ref = SalesReceiptLineRef.create(
-	      sat_line_id: sat_line_id
-	    )
+	    line = StPurchasePackage.find_or_create_by_sat_line_id(sat_line_id)
 
 	    SalesReceiptLineBit.create(
 	      operation:   'add',
@@ -549,13 +545,8 @@ class JobProcessor
       # Add new Sales Receipts
       delta.addition do |sat_id|
 	purchase = StPurchase.where('sat_id = ?', sat_id).first
-	sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sat_id).first
 
-	unless sales_receipt_ref
-	  sales_receipt_ref = SalesReceiptRef.create(
-	    sat_id: sat_id
-	  )
-	end
+	sales_receipt_ref = SalesReceiptRef.find_or_create_by_sat_id(sat_id)
 
 	bit = SalesReceiptBit.create(
 	  operation:   'add',
@@ -568,9 +559,8 @@ class JobProcessor
 
 	purchase_packages = StPurchasePackage.where('sat_id = ?', sat_id)
 	purchase_packages.each do |pp|
-	  ref = SalesReceiptLineRef.create(
-	    sat_line_id: pp.sat_line_id
-	  )
+	  ref = SalesReceiptLineRef.find_or_create_by_sat_line_id(pp.sat_line_id)
+
 	  SalesReceiptLineBit.create(
 	    item_id:     pp.sat_item_id,
 	    quantity:    pp.quantity,
