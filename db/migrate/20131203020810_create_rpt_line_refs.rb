@@ -1,4 +1,4 @@
-class CreateSalesReceiptLineRefs < ActiveRecord::Migration
+class CreateRptLineRefs < ActiveRecord::Migration
   def change
     create_table :sales_receipt_line_refs do |t|
       t.integer :sat_line_id, null: false
