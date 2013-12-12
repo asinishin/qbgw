@@ -524,7 +524,7 @@ class JobProcessor
 	    )
 
 	    SalesReceiptLineBit.create(
-	      txn_line_id: '-1',
+	      operation:   'add',
 	      item_id:     line.sat_item_id,
 	      quantity:    line.quantity,
 	      amount:      line.amount,
@@ -538,7 +538,7 @@ class JobProcessor
         if delDirty
           line_delta.deletion do |txn_line_id|
 	    SalesReceiptLineBit.create(
-	      txn_line_id: txn_line_id,
+	      operation:   'del',
 	      item_id:     0,
 	      sales_receipt_bit_id: bit.id
 	    )
