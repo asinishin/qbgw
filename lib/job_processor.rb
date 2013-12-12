@@ -547,7 +547,7 @@ class JobProcessor
       end
 
       # Add new Sales Receipts
-      delta.addtion do |sat_id|
+      delta.addition do |sat_id|
 	purchase = StPurchase.where('sat_id = ?', sat_id).first
 	sales_receipt_ref = ChargeRef.where('sat_line_id = ?', st_line.sat_line_id).first
 
