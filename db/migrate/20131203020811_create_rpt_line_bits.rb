@@ -6,8 +6,8 @@ class CreateRptLineBits < ActiveRecord::Migration
       t.string  :quantity
       t.string  :amount
       t.string  :class_ref
-      t.integer :sales_receipt_line_refs, null: false
-      t.integer :sales_receipt_bit_id,    null: false
+      t.integer :sales_receipt_line_ref_id, null: false
+      t.integer :sales_receipt_bit_id,      null: false
 
       t.timestamps
     end
