@@ -3,5 +3,5 @@ class SalesReceiptBit < ActiveRecord::Base
                   :status, :txn_date
 
   belongs_to :sales_receipt_ref
-  has_many   :sales_receipt_lines
+  has_many   :sales_receipt_line_bits
 end

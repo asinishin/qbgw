@@ -1016,25 +1016,25 @@ class JobProcessor
     if upds.size > 0
       request.merge!( 
 	:sales_receipt_mod_rq => upds.map do |delta|
-	  lines = delta.sales_receipt_lines 
+	  lines = delta.sales_receipt_line_bits 
 	  {
 	    :xml_attributes => { "requestID" => delta.id },
 	    :sales_receipt_mod => {
 	      :txn_id        => delta.sales_receipt_ref.qb_id,
 	      :edit_sequence => delta.sales_receipt_ref.edit_sequence,
 	      :sales_receipt_line_mod => lines.map do |line|
-	        if line.txn_line_id == "-1"
-		  item = ItemServiceRef.where("sat_id = #{ line.item_id }").first
+	        if line.operation == "add"
+		  item = ItemServiceRef.where('sat_id = ?', line.item_id).first
 		  item_ref = item.qb_id if item
 		  {
 		    :item_ref    => { list_id: item_ref },
 		    :quantity    => line.quantity,
 		    :amount      => line.amount,
 		    :class_ref   => { full_name: line.class_ref },
-		    :txn_line_id => line.txn_line_id
+		    :txn_line_id => line.sales_receipt_line_ref.txn_line_id
 		  }
 		else
-		  { :txn_line_id => line.txn_line_id }
+		  { :txn_line_id => line.sales_receipt_line_ref.txn_line_id }
 		end
 	      end
 	    }
@@ -1049,7 +1049,7 @@ class JobProcessor
 	:sales_receipt_add_rq => news.map do |delta|
 	  customer = CustomerRef.where("sat_id = #{ delta.customer_id }").first
 	  customer_ref = customer.qb_id if customer
-	  lines = delta.sales_receipt_lines 
+	  lines = delta.sales_receipt_line_bits 
 	  {
 	    :xml_attributes => { "requestID" => delta.id },
 	    :sales_receipt_add => {
@@ -1280,9 +1280,20 @@ class JobProcessor
     end
     if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'add'
       sales_receipt_ref.update_attribute(:qb_id, r['sales_receipt_ret']['txn_id'])
+      line_ret = r['sales_receipt_ret']['sales_receipt_line_ret']
+      if line_ret && line_ret.respond_to?(:to_ary)
+        line_bits = delta.sales_receipt_line_bits.order('id') 
+        line_ret.each_with_index do |line, ix|
+	  line_bits[ix].sales_receipt_line_ref.update_attributes(txn_line_id: line['txn_line_id'])
+	end
+      elsif line_ret 
+        line_bit = delta.sales_receipt_line_bits.order('id').first
+	line_bit.sales_receipt_line_ref.update_attributes(txn_line_id: line_ret['txn_line_id'])
+      end
     end
     if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'del'
-      sales_receipt_ref.update_attributes(qb_id: nil, edit_sequence: nil)
+      delta.sales_receipt_line_bits.each { |b| b.sales_receipt_line_ref.destroy }
+      sales_receipt_ref.destroy
     end
     if r['xml_attributes']['statusCode'] != '0'
       p_no = ""

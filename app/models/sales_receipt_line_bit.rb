@@ -3,4 +3,5 @@ class SalesReceiptLineBit < ActiveRecord::Base
                   :sales_receipt_bit_id, :sales_receipt_line_refs
 
   belongs_to :sales_receipt_bit
+  belongs_to :sales_receipt_line_ref
 end
