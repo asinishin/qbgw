@@ -603,7 +603,7 @@ class JobProcessor
         st_line  = StPurchasePackage.where('sat_line_id = ?', sat_line_id).first
 	purchase = StPurchase.where('sat_id = ?', st_line.sat_id).first
 
-	charge_ref = ChargeRef.where('sat_line_id = ?', st_line.sat_line_id)
+	charge_ref = ChargeRef.where('sat_line_id = ?', st_line.sat_line_id).first
 
 	unless charge_ref
 	  charge_ref = ChargeRef.create(
