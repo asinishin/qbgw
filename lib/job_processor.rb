@@ -703,7 +703,7 @@ class JobProcessor
 
       # Delete charges
       delta.deletion do |txn_id|
-	charge_ref = ChargeRef.where('txn_id = ?', txn_id).first
+	charge_ref = ChargeRef.where('qb_id = ?', txn_id).first
 
         # TODO: Remove this, I dont need edit_sequence for deletion
 	#qb_charge = QbCharge.where(
