@@ -562,6 +562,7 @@ class JobProcessor
 	  ref = SalesReceiptLineRef.find_or_create_by_sat_line_id(pp.sat_line_id)
 
 	  SalesReceiptLineBit.create(
+	    operation:   'add',
 	    item_id:     pp.sat_item_id,
 	    quantity:    pp.quantity,
 	    amount:      pp.amount,
