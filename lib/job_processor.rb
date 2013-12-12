@@ -31,7 +31,7 @@ class JobProcessor
       # Clean up queues
       ItemServiceBit.delete_all
       CustomerBit.delete_all
-      SalesReceiptLine.delete_all
+      SalesReceiptLineBit.delete_all
       SalesReceiptBit.delete_all
       ChargeBit.delete_all
 
@@ -400,108 +400,196 @@ class JobProcessor
       # Prepare Delta Queue for Sales
       snapshot = Snapshot.current
 
-      StPurchase.where(
+      in_ids = StPurchase.select(:sat_id).where(
         'is_cashed AND txn_date between ? AND ?',
 	snapshot.date_from,
 	snapshot.date_to
-      ).order('sat_id').each do |purchase|
-        qb_sales_receipt = nil
+      ).order('sat_id').map { |e| e.sat_id }
 
-	sales_receipt_ref = SalesReceiptRef.where("sat_id = #{ purchase.sat_id }").first
-        sales_receipt_ref = SalesReceiptRef.create(sat_id: purchase.sat_id) unless sales_receipt_ref
+      out_ids = QbSalesReceipt.select(:txn_id).where(
+	'snapshot_id = ?', snapshot.id
+      ).order('txn_id').map { |e| e.txn_id }
 
-	if sales_receipt_ref.qb_id
-	  qb_sales_receipt = QbSalesReceipt.where(
-	    "txn_id = '#{ sales_receipt_ref.qb_id }' AND snapshot_id = #{ snapshot.id }"
-	  ).first
-	end
+      out_to_in_hash = {}
 
-	if qb_sales_receipt
-	  sales_receipt_ref.update_attributes(
-	    edit_sequence: qb_sales_receipt.edit_sequence,
-	    qb_id:         qb_sales_receipt.txn_id
-	  )
-
-	  counters = {}
-	  qb_lines = {}
-          QbSalesReceiptLine.where("qb_sales_receipt_id = #{ qb_sales_receipt.id }").each do |line|
-	    item_service = QbItemService.where('list_id = ?', line.item_ref).first
-	    key = item_service.name + ':' + line.class_ref + ':' + line.quantity.to_d.to_s + ':' + line.amount
-	    cnt = 1
-	    cnt = counters[key] + 1 if counters[key]
-	    counters.merge!(key => cnt)
-	    qb_lines.merge!((key + ':' + cnt.to_s) => line)
-	  end
-
-	  counters = {}
-	  st_lines = {}
-	  StPurchasePackage.where("sat_id = #{ purchase.sat_id }").each do |pp|
-	    package = StPackage.where('sat_id = ?', pp.sat_item_id).first
-	    key = package.name + ':' + pp.class_ref + ':' + pp.quantity.to_d.to_s + ':' + pp.amount
-	    cnt = 1
-	    cnt = counters[key] + 1 if counters[key]
-	    counters.merge!(key => cnt)
-	    st_lines.merge!((key + ':' + cnt.to_s) => pp)
-	  end
-
-          Rails.logger.info "Here we are qb_lines ==>"
-          Rails.logger.info qb_lines.inspect
-          Rails.logger.info "Here we are st_lines ==>"
-          Rails.logger.info st_lines.inspect
-
-	  unless qb_lines.keys == st_lines.keys
-	    bit = SalesReceiptBit.create(
-	      operation:   'upd',
-	      txn_id:      qb_sales_receipt.txn_id,
-	      customer_id: purchase.sat_customer_id,
-	      ref_number:  purchase.ref_number,
-	      txn_date:    purchase.txn_date,
-	      account_ref: purchase.account_ref,
-	      sales_receipt_ref_id: sales_receipt_ref.id
-	    )
-
-	    st_lines.keys.each do |key|
-	      if qb_lines[key].nil?
-		create(
-		  txn_line_id: "-1",
-		  item_id:     st_lines[key].sat_item_id,
-		  quantity:    st_lines[key].quantity,
-		  amount:      st_lines[key].amount,
-		  class_ref:   st_lines[key].class_ref,
-		  sales_receipt_bit_id: bit.id
-		)
-	      else
-		create(
-		  txn_line_id: qb_lines[key].txn_line_id,
-		  item_id:     0,
-		  sales_receipt_bit_id: bit.id
-		)
-	      end
+      out_to_in = Proc.new do |outs|
+        unless outs.size == 0
+	  outs.map do |e|
+	    unless out_to_in_hash[e]
+	      out_to_in_hash.merge!(e => SalesReceiptRef.where('qb_id = ?', e).first.sat_id)
 	    end
-
+	    out_to_in_hash[e]
 	  end
 	else
-	  purchase_packages = StPurchasePackage.where("sat_id = #{ purchase.sat_id }")
-	  unless purchase_packages.size == 0
-	    bit = SalesReceiptBit.create(
-	      operation:   'add',
-	      customer_id: purchase.sat_customer_id,
-	      ref_number:  purchase.ref_number,
-	      txn_date:    purchase.txn_date,
-	      account_ref: purchase.account_ref,
-	      sales_receipt_ref_id: sales_receipt_ref.id
-	    )
-	    purchase_packages.each do |pp|
-	      create(
-		item_id:   pp.sat_item_id,
-		quantity:  pp.quantity,
-		amount:    pp.amount,
-		class_ref: pp.class_ref,
-		sales_receipt_bit_id: bit.id
+	  []
+	end
+      end
+
+      in_to_out_hash = {}
+
+      in_to_out = Proc.new do |ins|
+        unless ins.size == 0
+	  ins.map do |e|
+	    unless in_to_out_hash[e]
+	      in_to_out_hash.merge!(
+	        e => SalesReceiptRef.where('sat_id = ? AND qb_id IS NOT NULL', e).first.qb_id
 	      )
 	    end
+	    in_to_out_hash[e]
+	  end
+	else
+	  []
+	end
+      end
+
+      delta = Delta.new(in_ids, out_ids, in_to_out, out_to_in)
+
+      # Update Sales Receipts
+      delta.update do |sat_id, txn_id|
+	line_out_to_in_hash = {}
+
+	line_out_to_in = Proc.new do |outs|
+	  unless outs.size == 0
+	    outs.map do |e|
+	      unless line_out_to_in_hash[e]
+		line_out_to_in_hash.merge!(
+		  e => SalesReceiptLineRef.where('qb_id = ?', e).first.sat_line_id
+		)
+	      end
+	      line_out_to_in_hash[e]
+	    end
+	  else
+	    []
 	  end
 	end
+
+	line_in_to_out_hash = {}
+
+	line_in_to_out = Proc.new do |ins|
+	  unless ins.size == 0
+	    ins.map do |e|
+	      unless line_in_to_out_hash[e]
+		line_in_to_out_hash.merge!(
+		  e => SalesReceiptLineRef.where(
+		    'sat_line_id = ? AND qb_id IS NOT NULL', e
+		  ).first.qb_id
+		)
+	      end
+	      line_in_to_out_hash[e]
+	    end
+	  else
+	    []
+	  end
+	end
+
+        line_in_ids = StPurchasePackage.select(:sat_line_id).where('sat_id = ?', sat_id)
+	r_id = QbSalesReceipt.select(:id).where('txn_id = ?', txn_id).first
+	line_out_ids = QbSalesReceiptLine.select(
+	  :txn_line_id
+	).where('qb_sales_receipt_id = ?', r_id.id)
+
+        line_delta = Delta.new(line_in_ids, line_out_ids, line_out_to_in, line_in_to_out)
+
+        addDirty = false
+	line_delta.addition do |sat_line_id|
+	  addDirty = true
+	end
+
+        delDirty = false
+	line_delta.deletion do |txn_line_id|
+	  delDirty = true
+	end
+
+	bit = nil
+	if addDirty || delDirty
+	  purchase = StPurchase.where('sat_id = ?', sat_id).first
+	  sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sat_id).first
+
+	  bit = SalesReceiptBit.create(
+	    operation:   'upd',
+	    customer_id: purchase.sat_customer_id,
+	    ref_number:  purchase.ref_number,
+	    txn_date:    purchase.txn_date,
+	    account_ref: purchase.account_ref,
+	    sales_receipt_ref_id: sales_receipt_ref.id
+	  )
+	end
+
+	if addDirty
+	  line_delta.addition do |sat_line_id|
+	    line = StPurchasePackage.where('sat_line_id = ?', sat_line_id).first 
+
+	    ref = SalesReceiptLineRef.create(
+	      sat_line_id: sat_line_id
+	    )
+
+	    SalesReceiptLineBit.create(
+	      txn_line_id: '-1',
+	      item_id:     line.sat_item_id,
+	      quantity:    line.quantity,
+	      amount:      line.amount,
+	      class_ref:   line.class_ref,
+	      sales_receipt_line_ref_id: ref.id,
+	      sales_receipt_bit_id: bit.id
+	    )
+	  end
+	end
+
+        if delDirty
+          line_delta.deletion do |txn_line_id|
+	    SalesReceiptLineBit.create(
+	      txn_line_id: txn_line_id,
+	      item_id:     0,
+	      sales_receipt_bit_id: bit.id
+	    )
+	  end
+	end
+      end
+
+      # Add new Sales Receipts
+      delta.addtion do |sat_id|
+	purchase = StPurchase.where('sat_id = ?', sat_id).first
+	sales_receipt_ref = ChargeRef.where('sat_line_id = ?', st_line.sat_line_id).first
+
+	unless sales_receipt_ref
+	  sales_receipt_ref = SalesReceiptRef.create(
+	    sat_id: sat_id
+	  )
+	end
+
+	bit = SalesReceiptBit.create(
+	  operation:   'add',
+	  customer_id: purchase.sat_customer_id,
+	  ref_number:  purchase.ref_number,
+	  txn_date:    purchase.txn_date,
+	  account_ref: purchase.account_ref,
+	  sales_receipt_ref_id: sales_receipt_ref.id
+	)
+
+	purchase_packages = StPurchasePackage.where('sat_id = ?', sat_id)
+	purchase_packages.each do |pp|
+	  ref = SalesReceiptLineRef.create(
+	    sat_line_id: pp.sat_line_id
+	  )
+	  SalesReceiptLineBit.create(
+	    item_id:     pp.sat_item_id,
+	    quantity:    pp.quantity,
+	    amount:      pp.amount,
+	    class_ref:   pp.class_ref,
+	    sales_receipt_line_ref_id: ref.id,
+	    sales_receipt_bit_id: bit.id
+	  )
+	end
+      end
+
+      # Delete Sales Receipts
+      delta.deletion do |txn_id|
+	sales_receipt_ref = SalesReceiptRef.where('txn_id = ?', txn_id).first
+
+	SalesReceiptBit.create(
+	  operation: 'del',
+	  sales_receipt_ref_id: sales_receipt_ref.id
+	)
       end
 
       Snapshot.move_to(:sending_sales)
@@ -580,10 +668,6 @@ class JobProcessor
 	  purchase   = StPurchase.where('sat_id = ?', st_line.sat_id).first
 	  charge_ref = ChargeRef.where('sat_line_id = ?', sat_line_id).first
 
-	  Rails.logger.info "Here we are updating charge ==>"
-	  Rails.logger.info st_line.inspect
-	  Rails.logger.info qb_charge.inspect
-
 	  ChargeBit.create(
 	    operation:   'upd',
 	    customer_id: purchase.sat_customer_id,
@@ -629,12 +713,13 @@ class JobProcessor
       delta.deletion do |txn_id|
 	charge_ref = ChargeRef.where('txn_id = ?', txn_id).first
 
-	qb_charge = QbCharge.where(
-	  'txn_id = ? AND snapshot_id = ?',
-	  txn_id, snapshot.id
-	).first
-
-	charge_ref.update_attributes(edit_sequence: qb_charge.edit_sequence)
+        # TODO: Remove this, I dont need edit_sequence for deletion
+	#qb_charge = QbCharge.where(
+	#  'txn_id = ? AND snapshot_id = ?',
+	#  txn_id, snapshot.id
+	#).first
+        #
+	#charge_ref.update_attributes(edit_sequence: qb_charge.edit_sequence)
 
 	# Delete a charge
 	ChargeBit.create(
