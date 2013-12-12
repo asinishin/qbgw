@@ -549,7 +549,7 @@ class JobProcessor
       # Add new Sales Receipts
       delta.addition do |sat_id|
 	purchase = StPurchase.where('sat_id = ?', sat_id).first
-	sales_receipt_ref = ChargeRef.where('sat_line_id = ?', st_line.sat_line_id).first
+	sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sat_id).first
 
 	unless sales_receipt_ref
 	  sales_receipt_ref = SalesReceiptRef.create(
@@ -584,7 +584,7 @@ class JobProcessor
 
       # Delete Sales Receipts
       delta.deletion do |txn_id|
-	sales_receipt_ref = SalesReceiptRef.where('txn_id = ?', txn_id).first
+	sales_receipt_ref = SalesReceiptRef.where('qb_id = ?', txn_id).first
 
 	SalesReceiptBit.create(
 	  operation: 'del',
