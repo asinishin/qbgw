@@ -453,7 +453,7 @@ class JobProcessor
 	    outs.map do |e|
 	      unless line_out_to_in_hash[e]
 		line_out_to_in_hash.merge!(
-		  e => SalesReceiptLineRef.where('qb_id = ?', e).first.sat_line_id
+		  e => SalesReceiptLineRef.where('txn_line_id = ?', e).first.sat_line_id
 		)
 	      end
 	      line_out_to_in_hash[e]
@@ -471,7 +471,7 @@ class JobProcessor
 	      unless line_in_to_out_hash[e]
 		line_in_to_out_hash.merge!(
 		  e => SalesReceiptLineRef.where(
-		    'sat_line_id = ? AND qb_id IS NOT NULL', e
+		    'sat_line_id = ? AND txn_line_id IS NOT NULL', e
 		  ).first.qb_id
 		)
 	      end
