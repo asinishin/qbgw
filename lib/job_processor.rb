@@ -517,8 +517,13 @@ class JobProcessor
       snapshot = Snapshot.current
       
       in_ids = StPurchasePackage.select(:sat_line_id).where(
-	"txn_date between ? AND ?",
-	snapshot.date_from, snapshot.date_to
+        %Q{
+	  EXISTS (
+	    SELECT 'x' FROM st_purchases ps
+	    WHERE ps.sat_id = st_purchase_packages.sat_id
+	    AND NOT ps.is_cashed
+	  ) AND st_purchase_packages.txn_date between ? AND ?
+	}.squish, snapshot.date_from, snapshot.date_to
       ).order('sat_line_id').map { |e| e.sat_line_id }
 
       out_ids = QbCharge.select(:txn_id).where(
@@ -598,10 +603,14 @@ class JobProcessor
         st_line  = StPurchasePackage.where('sat_line_id = ?', sat_line_id).first
 	purchase = StPurchase.where('sat_id = ?', st_line.sat_id).first
 
-	charge_ref = ChargeRef.create(
-	  sat_id:      st_line.sat_id,
-	  sat_line_id: st_line.sat_line_id
-	)
+	charge_ref = ChargeRef.where('sat_line_id = ?', st_line.sat_line_id)
+
+	unless charge_ref
+	  charge_ref = ChargeRef.create(
+	    sat_id:      st_line.sat_id,
+	    sat_line_id: st_line.sat_line_id
+	  )
+	end
 
 	ChargeBit.create(
 	  operation:   'add',
