@@ -406,8 +406,13 @@ class JobProcessor
 	snapshot.date_to
       ).order('sat_id').map { |e| e.sat_id }
 
-      out_ids = QbSalesReceipt.select(:txn_id).where(
-	'snapshot_id = ?', snapshot.id
+      out_ids = QbSalesReceipt.select(:txn_id).joins(
+        %Q{
+	  INNER JOIN sales_receipt_refs rf
+	  ON qb_sales_receipts.txn_id = rf.qb_id
+	}.squish
+      ).where(
+	'qb_sales_receipts.snapshot_id = ?', snapshot.id
       ).order('txn_id').map { |e| e.txn_id }
 
       out_to_in_hash = {}
@@ -486,10 +491,16 @@ class JobProcessor
 	  'sat_id = ?', sat_id
 	).map { |e| e.sat_line_id }
 
-	qb_sales_receipt = QbSalesReceipt.where(
-	  'txn_id = ? AND snapshot_id = ?', txn_id, snapshot.id
-	).first
-	line_out_ids = qb_sales_receipt.qb_sales_receipt_lines.map { |e| e.txn_line_id }
+	line_out_ids = QbSalesReceiptLine.joins(
+	  %Q{
+	    INNER JOIN qb_sales_receipts rt
+	    ON qb_sales_receipt_lines.qb_sales_receipt_id = rt.id
+	    INNER JOIN sales_receipt_line_refs rf
+	    ON qb_sales_receipt_lines.txn_line_id = rf.txn_line_id
+	  }.squish
+	).where(
+	  'rt.txn_id = ? AND rt.snapshot_id = ?', txn_id, snapshot.id
+	).map { |e| e.txn_line_id }
 
         line_delta = Delta.new(line_in_ids, line_out_ids, line_in_to_out, line_out_to_in)
 
@@ -609,8 +620,13 @@ class JobProcessor
 	}.squish, snapshot.date_from, snapshot.date_to
       ).order('sat_line_id').map { |e| e.sat_line_id }
 
-      out_ids = QbCharge.select(:txn_id).where(
-        'snapshot_id = ?', snapshot.id
+      out_ids = QbCharge.select(:txn_id).joins(
+        %Q{
+	  INNER JOIN charge_refs rf
+	  ON qb_charges.txn_id = rf.qb_id
+	}.squish
+      ).where(
+        'qb_charges.snapshot_id = ?', snapshot.id
       ).order('txn_id').map { |e| e.txn_id }
 
       out_to_in_hash = {}
