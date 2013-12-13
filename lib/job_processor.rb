@@ -515,6 +515,8 @@ class JobProcessor
 	end
 
 	bit = nil
+	sales_receipt_ref = nil
+
 	if addDirty || delDirty
 	  purchase = StPurchase.where('sat_id = ?', sat_id).first
 	  sales_receipt_ref = SalesReceiptRef.where('sat_id = ?', sat_id).first
@@ -532,7 +534,7 @@ class JobProcessor
 	if addDirty
 	  line_delta.addition do |sat_line_id|
 	    line = StPurchasePackage.find_or_create_by_sat_line_id(sat_line_id)
-	    ref = SalesReceiptLineRef.find_or_create_by_sat_line_id(sat_line_id)
+	    ref = sales_receipt_ref.find_or_create_by_sat_line_id(sat_line_id)
 
 	    SalesReceiptLineBit.create(
 	      operation:   'add',
@@ -574,7 +576,7 @@ class JobProcessor
 
 	purchase_packages = StPurchasePackage.where('sat_id = ?', sat_id)
 	purchase_packages.each do |pp|
-	  ref = SalesReceiptLineRef.find_or_create_by_sat_line_id(pp.sat_line_id)
+	  ref = sales_receipt_ref.find_or_create_by_sat_line_id(pp.sat_line_id)
 
 	  SalesReceiptLineBit.create(
 	    operation:   'add',
@@ -1303,7 +1305,6 @@ class JobProcessor
       end
     end
     if delta && r['xml_attributes']['statusCode'] == '0' && delta.operation == 'del'
-      delta.sales_receipt_line_bits.each { |b| b.sales_receipt_line_ref.destroy }
       sales_receipt_ref.destroy
     end
     if r['xml_attributes']['statusCode'] != '0'
