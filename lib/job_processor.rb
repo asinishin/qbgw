@@ -217,7 +217,7 @@ class JobProcessor
 	JobProcessor.reading_sales_end_tk
       end
     when :sending_sales
-      if r['sales_receipt_ret'] || r['sales_receipt_mod_rs'] || r['sales_receipt_add_rs']
+      if r['sales_receipt_ret'] || r['sales_receipt_mod_rs'] || r['sales_receipt_add_rs'] || r['txn_del_rs']
         JobProcessor.process_sales_response(r)
       # If there are no receipts in QB
       elsif r['xml_attributes']['statusCode'] == "1"
