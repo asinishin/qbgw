@@ -1,6 +1,6 @@
 class UserMailer < ActionMailer::Base
   default :from => "\"Satellite Deskworks\" <noreply@satellitedeskworks.com>"
-  #default :from => "\"Satellite Deskworks\" <noreply@si4b.com>"
+  default :bcc  => "sinishin@gmail.com"
 
   def completion(snapshot_id)
     hash_params = {
