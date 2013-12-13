@@ -491,7 +491,7 @@ class JobProcessor
 	).first
 	line_out_ids = qb_sales_receipt.qb_sales_receipt_lines.map { |e| e.txn_line_id }
 
-        line_delta = Delta.new(line_in_ids, line_out_ids, line_out_to_in, line_in_to_out)
+        line_delta = Delta.new(line_in_ids, line_out_ids, line_in_to_out, line_out_to_in)
 
         addDirty = false
 	line_delta.addition do |sat_line_id|
